@@ -428,9 +428,7 @@ function IncomeTab({ incomes, setIncomes, selectedYear, onSaveIncome, onDeleteIn
           "Content-Type": "application/json",
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
-          ...(typeof import.meta !== "undefined" && import.meta.env?.VITE_ANTHROPIC_KEY
-            ? { "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY }
-            : {}),
+          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY || "",
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
@@ -1059,9 +1057,7 @@ export default function App() {
           "Content-Type": "application/json",
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
-          ...(typeof import.meta !== "undefined" && import.meta.env?.VITE_ANTHROPIC_KEY
-            ? { "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY }
-            : {}),
+          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY || "",
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
@@ -1125,23 +1121,18 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
 
       if (!resp.ok) {
         const errBody = await resp.text();
-        // APIキーなし（Claude.ai外）の場合はフレンドリーメッセージ
-        if (resp.status === 401) throw new Error("APIキーが必要です。Vercelの環境変数にVITE_ANTHROPIC_KEYを設定してください。");
-        if (resp.status === 400) throw new Error(`リクエストエラー: ${errBody.slice(0, 120)}`);
-        throw new Error(`APIエラー: ${resp.status}`);
+        if (resp.status === 401) throw new Error("APIキーが正しくありません。VercelのVITE_ANTHROPIC_KEYを確認してください。");
+        throw new Error(`APIエラー(${resp.status}): ${errBody.slice(0, 150)}`);
       }
 
       const data = await resp.json();
-
-      // エラーレスポンスのチェック
-      if (data.error) throw new Error(data.error.message || "APIエラー");
+      if (data.error) throw new Error(`APIエラー: ${data.error.message}`);
 
       const text = data.content?.map(i => i.text || "").join("") || "";
       if (!text) throw new Error("AIからの応答が空でした");
 
-      // JSONを柔軟にパース（前後の余分なテキストを除去）
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("JSONが見つかりませんでした");
+      const jsonMatch = text.match(/[{][^]*?[}]/);
+      if (!jsonMatch) throw new Error("読み取り結果のJSONが見つかりませんでした");
       const parsed = JSON.parse(jsonMatch[0]);
 
       if (parsed.verdict === "ng" || parsed.verdict === "gray") {
