@@ -1,37 +1,35 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 // ─────────────────────────────────────────────────────────
-// Supabase 設定
+// Supabase & Anthropic 設定
 // ─────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://oultpirylilasscnzwdz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_bUqlCpLuD0MU4QT9tH_P3w_c3NTUo7D";
+const ANTHROPIC_KEY = (typeof import.meta !== "undefined") ? (import.meta.env?.VITE_ANTHROPIC_KEY || "") : "";
 
-const sb = async (path, opts = {}) => {
+const sb = async (path, method = "GET", body = null, extraHeaders = {}) => {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method,
     headers: {
-      "apikey":        SUPABASE_KEY,
+      "apikey": SUPABASE_KEY,
       "Authorization": `Bearer ${SUPABASE_KEY}`,
-      "Content-Type":  "application/json",
-      "Prefer":        opts.prefer || "return=representation",
-      ...opts.headers,
+      "Content-Type": "application/json",
+      "Prefer": method === "POST" ? "resolution=merge-duplicates,return=minimal" : "return=minimal",
+      ...extraHeaders,
     },
-    ...opts,
+    body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Supabase error: ${res.status} ${err}`);
-  }
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
+  if (!res.ok) { const e = await res.text(); throw new Error(`DB ${res.status}: ${e.slice(0,100)}`); }
+  const t = await res.text();
+  return t ? JSON.parse(t) : null;
 };
 
-// DB行 ↔ アプリ形式の変換
-const toExpense = r => ({ id: r.id, date: r.date, store: r.store, amount: r.amount, memo: r.memo || "", category: r.category || "other", imageUrl: r.image_url || null, ratio: r.ratio ?? 100 });
-const toIncome  = r => ({ id: r.id, date: r.date, client: r.client, amount: r.amount, withholding: r.withholding || 0, memo: r.memo || "", invoiceNo: r.invoice_no || "" });
-const toCat     = r => ({ id: r.id, label: r.label, icon: r.icon, color: r.color, bg: r.bg, keywords: r.keywords || "" });
-const fromExpense = e => ({ id: e.id, date: e.date, store: e.store, amount: e.amount, memo: e.memo || "", category: e.category, image_url: e.imageUrl || null, ratio: e.ratio ?? 100 });
-const fromIncome  = i => ({ id: i.id, date: i.date, client: i.client, amount: i.amount, withholding: i.withholding || 0, memo: i.memo || "", invoice_no: i.invoiceNo || "" });
-const fromCat     = (c, order) => ({ id: c.id, label: c.label, icon: c.icon, color: c.color, bg: c.bg, keywords: c.keywords || "", sort_order: order });
+const toExp = r => ({ id: r.id, date: r.date, store: r.store, amount: r.amount, memo: r.memo||"", category: r.category||"other", imageUrl: r.image_url||null, ratio: r.ratio??100 });
+const toInc = r => ({ id: r.id, date: r.date, client: r.client, amount: r.amount, withholding: r.withholding||0, memo: r.memo||"", invoiceNo: r.invoice_no||"" });
+const toCat = r => ({ id: r.id, label: r.label, icon: r.icon, color: r.color, bg: r.bg, keywords: r.keywords||"" });
+const frExp = e => ({ id: e.id, date: e.date, store: e.store, amount: e.amount, memo: e.memo||"", category: e.category, image_url: e.imageUrl||null, ratio: e.ratio??100 });
+const frInc = i => ({ id: i.id, date: i.date, client: i.client, amount: i.amount, withholding: i.withholding||0, memo: i.memo||"", invoice_no: i.invoiceNo||"" });
+const frCat = (c, i) => ({ id: c.id, label: c.label, icon: c.icon, color: c.color, bg: c.bg, keywords: c.keywords||"", sort_order: i });
 
 // ─────────────────────────────────────────────────────────
 // 定数
@@ -376,7 +374,7 @@ function IncomeCard({ inc, onDelete }) {
 // ─────────────────────────────────────────────────────────
 // 収入タブ — PDF読み取り
 // ─────────────────────────────────────────────────────────
-function IncomeTab({ incomes, setIncomes, selectedYear, onSaveIncome, onDeleteIncome }) {
+function IncomeTab({ incomes, setIncomes, selectedYear, onSave, onDelete }) {
   const [reading, setReading]       = useState(false);
   const [editInc, setEditInc]       = useState(null);
   const [error, setError]           = useState(null);
@@ -424,12 +422,7 @@ function IncomeTab({ incomes, setIncomes, selectedYear, onSaveIncome, onDeleteIn
 
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY || "",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
@@ -472,16 +465,13 @@ function IncomeTab({ incomes, setIncomes, selectedYear, onSaveIncome, onDeleteIn
   const saveIncome = () => {
     if (!editInc) return;
     setIncomes(p => [editInc, ...p]);
-    onSaveIncome?.(editInc);
+    onSave?.(editInc);
     setEditInc(null);
     setPdfName(null);
     setViewMode("list");
   };
 
-  const deleteIncome = (id) => {
-    setIncomes(p => p.filter(i => i.id !== id));
-    onDeleteIncome?.(id);
-  };
+  const deleteIncome = (id) => { setIncomes(p => p.filter(i => i.id !== id)); onDelete?.(id); };
 
   const exportIncomeCSV = () => {
     const rows = [
@@ -856,108 +846,49 @@ export default function App() {
   const [newCat, setNewCat]         = useState({ label: "", icon: "🏷️", keywords: "" });
   const [rejectedEntry, setRejectedEntry] = useState(null);
   const [storageReady, setStorageReady] = useState(false);
-  const [saveStatus, setSaveStatus]     = useState(null); // "saving" | "saved" | "error"
-  const fileRef  = useRef();
-  const nextId   = useRef(1000);
-  const catId    = useRef(100);
+  const [saveStatus, setSaveStatus]     = useState(null);
+  const fileRef = useRef();
+  const nextId  = useRef(1000);
+  const catId   = useRef(100);
 
   // ── Supabase 初期ロード ──
   useEffect(() => {
-    const load = async () => {
+    (async () => {
       try {
-        const [exps, incs, cats, meta] = await Promise.all([
+        const [exps, incs, cats] = await Promise.all([
           sb("expenses?select=*&order=date.desc"),
           sb("incomes?select=*&order=date.desc"),
           sb("categories?select=*&order=sort_order.asc"),
-          sb("app_meta?select=*"),
         ]);
-
-        if (exps?.length)  setExpenses(exps.map(toExpense));
-        if (incs?.length)  setIncomes(incs.map(toIncome));
+        if (exps?.length)  { setExpenses(exps.map(toExp)); nextId.current = Math.max(...exps.map(e=>e.id)) + 1; }
+        if (incs?.length)  { setIncomes(incs.map(toInc)); nextId.current = Math.max(nextId.current, ...incs.map(i=>i.id)) + 1; }
         if (cats?.length)  setCategories(cats.map(toCat));
-
-        // nextIdをDBの最大値から復元
-        const maxExpId = exps?.length ? Math.max(...exps.map(e => e.id)) : 999;
-        const maxIncId = incs?.length ? Math.max(...incs.map(i => i.id)) : 999;
-        nextId.current = Math.max(maxExpId, maxIncId) + 1;
-
-        const catIdMeta = meta?.find(m => m.key === "catId");
-        if (catIdMeta) catId.current = parseInt(catIdMeta.value) || 100;
-      } catch (e) {
-        console.warn("Supabase load failed, using sample data:", e.message);
-      } finally {
-        setStorageReady(true);
-      }
-    };
-    load();
+      } catch (e) { console.warn("DB load failed:", e.message); }
+      finally { setStorageReady(true); }
+    })();
   }, []);
 
-  // ── Supabase CRUD ヘルパー ──
-  const dbSaveExpense = useCallback(async (exp) => {
+  // ── Supabase CRUD ──
+  const dbSave   = useCallback(async (table, row) => {
     setSaveStatus("saving");
-    try {
-      await sb("expenses", {
-        method: "POST",
-        prefer: "resolution=merge-duplicates,return=minimal",
-        headers: { "Prefer": "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify(fromExpense(exp)),
-      });
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus(null), 1500);
-    } catch (e) { setSaveStatus("error"); }
+    try { await sb(table, "POST", row); setSaveStatus("saved"); setTimeout(()=>setSaveStatus(null),1500); }
+    catch(e) { setSaveStatus("error"); console.warn(e); }
   }, []);
-
-  const dbDeleteExpense = useCallback(async (id) => {
-    try { await sb(`expenses?id=eq.${id}`, { method: "DELETE", prefer: "" }); }
-    catch (e) { console.warn("delete expense failed:", e); }
-  }, []);
-
-  const dbUpdateExpense = useCallback(async (exp) => {
+  const dbPatch  = useCallback(async (table, id, row) => {
     setSaveStatus("saving");
-    try {
-      await sb(`expenses?id=eq.${exp.id}`, {
-        method: "PATCH",
-        prefer: "return=minimal",
-        headers: { "Prefer": "return=minimal" },
-        body: JSON.stringify(fromExpense(exp)),
-      });
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus(null), 1500);
-    } catch (e) { setSaveStatus("error"); }
+    try { await sb(`${table}?id=eq.${id}`, "PATCH", row); setSaveStatus("saved"); setTimeout(()=>setSaveStatus(null),1500); }
+    catch(e) { setSaveStatus("error"); console.warn(e); }
   }, []);
-
-  const dbSaveIncome = useCallback(async (inc) => {
-    setSaveStatus("saving");
-    try {
-      await sb("incomes", {
-        method: "POST",
-        prefer: "resolution=merge-duplicates,return=minimal",
-        headers: { "Prefer": "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify(fromIncome(inc)),
-      });
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus(null), 1500);
-    } catch (e) { setSaveStatus("error"); }
+  const dbDelete = useCallback(async (table, id) => {
+    try { await sb(`${table}?id=eq.${id}`, "DELETE", null, {"Prefer":""}); }
+    catch(e) { console.warn(e); }
   }, []);
-
-  const dbDeleteIncome = useCallback(async (id) => {
-    try { await sb(`incomes?id=eq.${id}`, { method: "DELETE", prefer: "" }); }
-    catch (e) { console.warn("delete income failed:", e); }
-  }, []);
-
-  const dbSaveCategories = useCallback(async (cats) => {
+  const dbSaveCats = useCallback(async (cats) => {
     try {
-      // 全削除して再挿入（カテゴリは少数なので）
-      await sb("categories", { method: "DELETE", prefer: "", headers: { "Prefer": "" }, body: undefined });
-      if (cats.filter(c => c.id !== "all").length > 0) {
-        await sb("categories", {
-          method: "POST",
-          prefer: "return=minimal",
-          headers: { "Prefer": "return=minimal" },
-          body: JSON.stringify(cats.filter(c => c.id !== "all").map((c, i) => fromCat(c, i))),
-        });
-      }
-    } catch (e) { console.warn("save categories failed:", e); }
+      await sb("categories", "DELETE", null, {"Prefer":""});
+      const rows = cats.filter(c=>c.id!=="all").map((c,i)=>frCat(c,i));
+      if (rows.length) await sb("categories", "POST", rows);
+    } catch(e) { console.warn(e); }
   }, []);
 
   // カテゴリ追加
@@ -999,36 +930,10 @@ export default function App() {
     if (!manualEntry || !manualEntry.store || !manualEntry.amount) return;
     const exp = { ...manualEntry, amount: parseInt(manualEntry.amount) || 0, ratio: manualEntry.ratio ?? 100 };
     setExpenses(p => [exp, ...p]);
-    dbSaveExpense(exp);
+    dbSave("expenses", frExp(exp));
     setManualEntry(null);
     setExpTab("list");
   };
-
-  // ── 画像圧縮（スマホ写真対応）──
-  const compressImage = (file) => new Promise((resolve) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const MAX = 1600;
-      let w = img.width, h = img.height;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else       { w = Math.round(w * MAX / h); h = MAX; }
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = w; canvas.height = h;
-      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.85).split(",")[1]);
-    };
-    img.onerror = () => {
-      // 圧縮失敗時はそのまま読み込む
-      const r = new FileReader();
-      r.onload = () => resolve(r.result.split(",")[1]);
-      r.readAsDataURL(file);
-    };
-    img.src = url;
-  });
 
   // ── レシートスキャン処理 ──
   const handleFile = useCallback(async (file) => {
@@ -1041,8 +946,12 @@ export default function App() {
     setEditEntry(null);
 
     try {
-      // 画像を圧縮してbase64化
-      const base64 = await compressImage(file);
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(",")[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
 
       // カテゴリ一覧をAIプロンプトに動的に組み込む
       const catList = categories
@@ -1057,7 +966,7 @@ export default function App() {
           "Content-Type": "application/json",
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
-          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY || "",
+          "x-api-key": ANTHROPIC_KEY,
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
@@ -1065,7 +974,7 @@ export default function App() {
           messages: [{
             role: "user",
             content: [
-              { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
+              { type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: base64 } },
               { type: "text", text: `あなたはフリーランスのアイドル・アーティスト（たきしま）の確定申告を補助するAIです。
 このレシート・領収書を見て、**仕事上の必要経費として認められるか**を日本の税務基準で厳格に3段階判定してください。
 
@@ -1120,37 +1029,32 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
       });
 
       if (!resp.ok) {
-        const errBody = await resp.text();
+        const errText = await resp.text();
         if (resp.status === 401) throw new Error("APIキーが正しくありません。VercelのVITE_ANTHROPIC_KEYを確認してください。");
-        throw new Error(`APIエラー(${resp.status}): ${errBody.slice(0, 150)}`);
+        throw new Error(`APIエラー(${resp.status}): ${errText.slice(0, 100)}`);
       }
 
       const data = await resp.json();
-      if (data.error) throw new Error(`APIエラー: ${data.error.message}`);
+      if (data.error) throw new Error(data.error.message || "APIエラー");
 
       const text = data.content?.map(i => i.text || "").join("") || "";
       if (!text) throw new Error("AIからの応答が空でした");
 
-      const jsonMatch = text.match(/[{][^]*?[}]/);
-      if (!jsonMatch) throw new Error("読み取り結果のJSONが見つかりませんでした");
-      const parsed = JSON.parse(jsonMatch[0]);
+      // JSONを柔軟にパース
+      const clean = text.replace(/```json|```/g, "").trim();
+      const jsonStart = clean.indexOf("{");
+      const jsonEnd   = clean.lastIndexOf("}");
+      if (jsonStart === -1 || jsonEnd === -1) throw new Error("レシートの読み取りに失敗しました");
+      const parsed = JSON.parse(clean.slice(jsonStart, jsonEnd + 1));
 
       if (parsed.verdict === "ng" || parsed.verdict === "gray") {
-        setRejectedEntry({
-          verdict: parsed.verdict,
-          store: parsed.store,
-          amount: parsed.amount,
-          memo: parsed.memo,
-          reason: parsed.reason,
-          grayDetail: parsed.grayDetail || null,
-          full: parsed,
-        });
+        setRejectedEntry({ verdict: parsed.verdict, store: parsed.store, amount: parsed.amount,
+          memo: parsed.memo, reason: parsed.reason, grayDetail: parsed.grayDetail || null, full: parsed });
         setPreviewUrl(null);
       } else {
         setEditEntry({ ...parsed, id: nextId.current++, imageUrl: url });
       }
     } catch (e) {
-      console.error("scan error:", e);
       setError(e.message || "読み取りに失敗しました。もう一度お試しください。");
     } finally {
       setScanning(false);
@@ -1165,17 +1069,22 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
 
   const saveEntry = () => {
     if (!editEntry) return;
-    const exp = { ...editEntry, ratio: editEntry.ratio ?? 100 };
-    setExpenses(p => [exp, ...p]);
-    dbSaveExpense(exp);
+    setExpenses(p => [{ ...editEntry, ratio: editEntry.ratio ?? 100 }, ...p]);
     setEditEntry(null);
     setPreviewUrl(null);
     setExpTab("list");
   };
 
-  const cancelScan = () => { setEditEntry(null); setPreviewUrl(null); setError(null); setRejectedEntry(null); };
-  const deleteExpense = (id) => setExpenses(p => p.filter(e => e.id !== id));
-  const updateRatio   = (id, ratio) => setExpenses(p => p.map(e => e.id === id ? { ...e, ratio } : e));
+  const cancelScan    = () => { setEditEntry(null); setPreviewUrl(null); setError(null); setRejectedEntry(null); };
+  const deleteExpense = (id) => { setExpenses(p => p.filter(e => e.id !== id)); dbDelete("expenses", id); };
+  const updateRatio   = (id, ratio) => {
+    setExpenses(p => {
+      const next = p.map(e => e.id === id ? { ...e, ratio } : e);
+      const exp = next.find(e => e.id === id);
+      if (exp) dbPatch("expenses", id, { ratio });
+      return next;
+    });
+  };
 
   // 集計（選択年のみ）
   const yearExpenses = expenses.filter(e => getYear(e.date) === selectedYear);
@@ -1189,11 +1098,10 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
     .filter(c => c.total > 0);
 
   // 利用可能な年リスト（データから自動生成）
-  // データがない年でもタブが消えないよう、2025〜今年は常に表示
   const availableYears = Array.from(new Set([
     ...expenses.map(e => getYear(e.date)),
     ...incomes.map(i => getYear(i.date)),
-    ...Array.from({ length: THIS_YEAR - 2024 }, (_, i) => 2025 + i), // 2025〜今年を固定
+    ...Array.from({ length: THIS_YEAR - 2024 }, (_, i) => 2025 + i),
   ])).filter(Boolean).sort((a, b) => b - a);
 
   const exportExpenseCSV = () => {
@@ -1622,7 +1530,7 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
 
         {/* ══ 収入タブ ══ */}
         {mainTab === "income" && (
-          <IncomeTab incomes={incomes} setIncomes={setIncomes} selectedYear={selectedYear} onSaveIncome={dbSaveIncome} onDeleteIncome={dbDeleteIncome} />
+          <IncomeTab incomes={incomes} setIncomes={setIncomes} selectedYear={selectedYear} onSave={inc=>dbSave("incomes",frInc(inc))} onDelete={id=>dbDelete("incomes",id)} />
         )}
 
         {/* ══ 申告サマリータブ ══ */}
@@ -1729,14 +1637,21 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
                 if (!window.confirm("すべてのデータを削除してサンプルデータに戻しますか？この操作は取り消せません。")) return;
                 try {
                   await Promise.all([
-                    sb("expenses",  { method: "DELETE", prefer: "", headers: { "Prefer": "" } }),
-                    sb("incomes",   { method: "DELETE", prefer: "", headers: { "Prefer": "" } }),
-                    sb("categories",{ method: "DELETE", prefer: "", headers: { "Prefer": "" } }),
+                    sb("expenses",  "DELETE", null, {"Prefer":""}),
+                    sb("incomes",   "DELETE", null, {"Prefer":""}),
+                    sb("categories","DELETE", null, {"Prefer":""}),
                   ]);
                 } catch(e) { console.warn("reset failed", e); }
                 setExpenses(SAMPLE_EXPENSES);
                 setIncomes(SAMPLE_INCOME);
                 setCategories(DEFAULT_CATEGORIES);
+                try {
+                  await Promise.all([
+                    sb("expenses",  "DELETE", null, {"Prefer":""}),
+                    sb("incomes",   "DELETE", null, {"Prefer":""}),
+                    sb("categories","DELETE", null, {"Prefer":""}),
+                  ]);
+                } catch(e) { console.warn("reset failed", e); }
               }} style={{
                 background: "none", border: "none", color: "#ccc", fontSize: 12, cursor: "pointer", padding: "8px 16px"
               }}>🗑 データをリセットする</button>
