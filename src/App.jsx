@@ -915,9 +915,9 @@ function MonthlyChart({ yearExpenses, yearIncomes, selectedYear }) {
 // メインアプリ
 // ─────────────────────────────────────────────────────────
 export default function App() {
-  const [expenses, setExpenses] = useState(SAMPLE_EXPENSES);
-  const [incomes, setIncomes] = useState(SAMPLE_INCOME);
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [expenses, setExpenses] = useState([]);
+  const [incomes, setIncomes] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [selectedYear, setSelectedYear] = useState(THIS_YEAR);
   const [mainTab, setMainTab] = useState("expense");
   const [expTab, setExpTab] = useState("list");
@@ -952,20 +952,31 @@ export default function App() {
 
         // 経費データの読み込み
         const { data: expData, error: expErr } = await supabase.from('expenses').select('*').order('createdAt', { ascending: false });
-        if (!expErr && expData?.length) setExpenses(expData.map(e => ({ ...e, ratio: Number(e.ratio), amount: Number(e.amount) })));
+        if (!expErr && expData?.length > 0) {
+          setExpenses(expData.map(e => ({ ...e, ratio: Number(e.ratio), amount: Number(e.amount) })));
+        } else {
+          setExpenses(SAMPLE_EXPENSES);
+        }
 
         // 収入データの読み込み
         const { data: incData, error: incErr } = await supabase.from('incomes').select('*').order('createdAt', { ascending: false });
-        if (!incErr && incData?.length) setIncomes(incData.map(i => ({ ...i, amount: Number(i.amount), withholding: Number(i.withholding) })));
+        if (!incErr && incData?.length > 0) {
+          setIncomes(incData.map(i => ({ ...i, amount: Number(i.amount), withholding: Number(i.withholding) })));
+        } else {
+          setIncomes(SAMPLE_INCOME);
+        }
 
         // カテゴリデータの読み込み
         const { data: catData, error: catErr } = await supabase.from('categories').select('*');
-        if (!catErr && catData?.length) {
+        if (!catErr && catData?.length > 0) {
           setCategories(catData.map(c => ({ ...c })));
-          nextId.current = Math.max(200, ...expData.map(e => e.id), ...incData.map(i => i.id)) + 1;
         } else {
-          // カテゴリがない（初回起動）場合はデフォルトを挿入
+          setCategories(DEFAULT_CATEGORIES);
           await supabase.from('categories').upsert(DEFAULT_CATEGORIES);
+        }
+
+        if (expData?.length > 0 || incData?.length > 0) {
+          nextId.current = Math.max(200, ...(expData || []).map(e => e.id), ...(incData || []).map(i => i.id)) + 1;
         }
       } catch (e) {
         console.error("Supabase load error:", e);
