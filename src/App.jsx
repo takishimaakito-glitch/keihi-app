@@ -344,42 +344,49 @@ function ExpenseCard({ exp, onDelete, onEdit, onImageClick, onRatioChange, cats 
       onMouseLeave={e => e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06)"}
     >
       {/* メイン行 */}
-      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        <div onClick={() => exp.imageUrl && onImageClick(exp.imageUrl)} style={{
-          width: 52, height: 52, borderRadius: 12, flexShrink: 0,
-          background: exp.imageUrl ? `url(${exp.imageUrl}) center/cover` : cat.bg,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 22, cursor: exp.imageUrl ? "pointer" : "default",
-          border: exp.imageUrl ? `2px solid ${cat.color}44` : "none",
-        }}>
-          {!exp.imageUrl && cat.icon}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a1a", marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{exp.store}</div>
-          <div style={{ fontSize: 13, color: "#888", marginBottom: 6 }}>{exp.memo}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 12, color: "#aaa" }}>{fmtDate(exp.date)}</span>
-            <Badge categoryId={exp.category} small cats={cats} />
-            {isPartial && (
-              <span style={{ fontSize: 11, color: "#C07A3A", background: "#FDF6EE", padding: "1px 7px", borderRadius: 999, fontWeight: 600 }}>
-                按分 {ratio}%
-              </span>
-            )}
-            {exp.invoiceNo && (
-              <span style={{ fontSize: 11, color: "#aaa", background: "#F5F5F5", padding: "1px 8px", borderRadius: 6 }}>{exp.invoiceNo}</span>
-            )}
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        {/* 左側：アイコン＆主要情報 */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flex: "1 1 auto", minWidth: 200 }}>
+          <div onClick={() => exp.imageUrl && onImageClick(exp.imageUrl)} style={{
+            width: 50, height: 50, borderRadius: 14, flexShrink: 0,
+            background: exp.imageUrl ? `url(${exp.imageUrl}) center/cover` : cat.bg,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 22, cursor: exp.imageUrl ? "pointer" : "default",
+            border: exp.imageUrl ? `2px solid ${cat.color}44` : "none",
+          }}>
+            {!exp.imageUrl && cat.icon}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#1a1a1a", marginBottom: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{exp.store}</div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{exp.memo}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 12, color: "#aaa" }}>{fmtDate(exp.date)}</span>
+              <Badge categoryId={exp.category} small cats={cats} />
+              {isPartial && (
+                <span style={{ fontSize: 11, color: "#C07A3A", background: "#FDF6EE", padding: "1px 7px", borderRadius: 999, fontWeight: 700 }}>
+                  按分 {ratio}%
+                </span>
+              )}
+              {exp.invoiceNo && (
+                <span style={{ fontSize: 10, color: "#aaa", border: "1px solid #E5E5E5", padding: "1px 6px", borderRadius: 6 }}>{exp.invoiceNo}</span>
+              )}
+            </div>
           </div>
         </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 18, color: "#1a1a1a" }}>{fmt(effective)}</div>
-          {isPartial && <div style={{ fontSize: 11, color: "#bbb", textDecoration: "line-through" }}>{fmt(exp.amount)}</div>}
-          <div style={{ display: "flex", gap: 6, marginTop: 6, justifyContent: "flex-end" }}>
+
+        {/* 右側：金額＆アクション */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flex: "1 0 auto", minWidth: 120 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {isPartial && <span style={{ fontSize: 12, color: "#bbb", textDecoration: "line-through" }}>{fmt(exp.amount)}</span>}
+            <span style={{ fontWeight: 800, fontSize: 20, color: "#1a1a1a", letterSpacing: "-0.5px" }}>{fmt(effective)}</span>
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
             <button onClick={() => setShowRatio(p => !p)} style={{
-              background: showRatio ? "#FDF6EE" : "none", border: `1px solid ${showRatio ? "#C07A3A44" : "#e5e5e5"}`,
-              color: showRatio ? "#C07A3A" : "#bbb", padding: "3px 8px", borderRadius: 8, cursor: "pointer", fontSize: 11, fontWeight: 600
+              background: showRatio ? "#FDF6EE" : "#F8F6F1", border: `1px solid ${showRatio ? "#C07A3A44" : "transparent"}`,
+              color: showRatio ? "#C07A3A" : "#888", padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "0.2s"
             }}>按分</button>
-            <button onClick={() => onEdit && onEdit(exp)} style={{ background: "none", border: "1px solid #e5e5e5", color: "#6B7280", padding: "3px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>編集</button>
-            <button onClick={() => onDelete(exp.id)} style={{ background: "none", border: "1px solid #e5e5e5", color: "#bbb", padding: "3px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>削除</button>
+            <button onClick={() => onEdit && onEdit(exp)} style={{ background: "#F8F6F1", border: "none", color: "#666", padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "0.2s" }}>編集</button>
+            <button onClick={() => onDelete(exp.id)} style={{ background: "#FFF0F0", border: "none", color: "#C05050", padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "0.2s" }}>削除</button>
           </div>
         </div>
       </div>
@@ -431,30 +438,27 @@ function IncomeCard({ inc, onDelete, onEdit }) {
       onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.1)"}
       onMouseLeave={e => e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06)"}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+        <div style={{ flex: "1 1 auto", minWidth: 200 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-            <span style={{ fontWeight: 700, fontSize: 15, color: "#1a1a1a" }}>{inc.client}</span>
+            <span style={{ fontWeight: 800, fontSize: 16, color: "#1a1a1a" }}>{inc.client}</span>
             {inc.invoiceNo && (
-              <span style={{ fontSize: 11, color: "#aaa", background: "#F5F5F5", padding: "1px 8px", borderRadius: 6 }}>{inc.invoiceNo}</span>
+              <span style={{ fontSize: 10, color: "#aaa", border: "1px solid #E5E5E5", padding: "1px 6px", borderRadius: 6 }}>{inc.invoiceNo}</span>
             )}
           </div>
-          <div style={{ fontSize: 13, color: "#888", marginBottom: 6 }}>{inc.memo}</div>
+          <div style={{ fontSize: 13, color: "#888", marginBottom: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{inc.memo}</div>
           <div style={{ fontSize: 12, color: "#aaa" }}>{fmtDate(inc.date)}</div>
         </div>
-        <div style={{ textAlign: "right", flexShrink: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 18, color: "#1a1a1a" }}>{fmt(inc.amount)}</div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flex: "1 0 auto", minWidth: 120 }}>
+          <div style={{ fontWeight: 800, fontSize: 20, color: "#1a1a1a", letterSpacing: "-0.5px" }}>{fmt(inc.amount)}</div>
           {inc.withholding > 0 && (
-            <div style={{ fontSize: 12, color: "#C07A3A", marginTop: 2 }}>
-              源泉 {fmt(inc.withholding)}
+            <div style={{ fontSize: 12, color: "#C07A3A", marginTop: 2, fontWeight: 600 }}>
+              源泉 {fmt(inc.withholding)} <span style={{ color: "#ddd", margin: "0 4px" }}>|</span> <span style={{ color: "#4A9B72" }}>手取 {fmt(net)}</span>
             </div>
           )}
-          <div style={{ fontSize: 12, color: "#4A9B72", fontWeight: 600, marginTop: 2 }}>
-            手取 {fmt(net)}
-          </div>
-          <div style={{ display: "flex", gap: 6, marginTop: 6, justifyContent: "flex-end" }}>
-            <button onClick={() => onEdit && onEdit(inc)} style={{ background: "none", border: "1px solid #e5e5e5", color: "#6B7280", padding: "3px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>編集</button>
-            <button onClick={() => onDelete(inc.id)} style={{ background: "none", border: "1px solid #e5e5e5", color: "#bbb", padding: "3px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>削除</button>
+          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+            <button onClick={() => onEdit && onEdit(inc)} style={{ background: "#F8F6F1", border: "none", color: "#666", padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "0.2s" }}>編集</button>
+            <button onClick={() => onDelete(inc.id)} style={{ background: "#FFF0F0", border: "none", color: "#C05050", padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "0.2s" }}>削除</button>
           </div>
         </div>
       </div>
@@ -974,10 +978,15 @@ export default function App() {
   const [expenses, setExpenses] = useState([]);
   const [incomes, setIncomes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(THIS_YEAR);
-  const [mainTab, setMainTab] = useState("expense");
-  const [expTab, setExpTab] = useState("list");
-  const [filterCat, setFilterCat] = useState("all");
+  const [selectedYear, setSelectedYear] = useState(() => parseInt(localStorage.getItem('keihi-selectedYear')) || THIS_YEAR);
+  const [mainTab, setMainTab] = useState(() => localStorage.getItem('keihi-mainTab') || "expense");
+  const [expTab, setExpTab] = useState(() => localStorage.getItem('keihi-expTab') || "list");
+  const [filterCat, setFilterCat] = useState(() => localStorage.getItem('keihi-filterCat') || "all");
+
+  useEffect(() => { localStorage.setItem('keihi-selectedYear', selectedYear); }, [selectedYear]);
+  useEffect(() => { localStorage.setItem('keihi-mainTab', mainTab); }, [mainTab]);
+  useEffect(() => { localStorage.setItem('keihi-expTab', expTab); }, [expTab]);
+  useEffect(() => { localStorage.setItem('keihi-filterCat', filterCat); }, [filterCat]);
   const [scanning, setScanning] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [editEntry, setEditEntry] = useState(null);
