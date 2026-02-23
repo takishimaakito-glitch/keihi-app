@@ -1193,17 +1193,30 @@ export default function App() {
     setError(null);
     setRejectedEntry(null);
     const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
+    setPreviewUrl(url); // プレビュー用は高速なローカルURLを使用
     setScanning(true);
     setEditEntry(null);
 
     try {
-      const base64 = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result.split(",")[1]);
-        r.onerror = rej;
-        r.readAsDataURL(file);
+      // DB保存・API送信向けに画像を圧縮（短辺800px以下, 軽量JPEG）
+      const compressedDataUrl = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let w = img.width, h = img.height;
+          const MAX_SIZE = 800;
+          if (w > h) { if (w > MAX_SIZE) { h = Math.round(h * MAX_SIZE / w); w = MAX_SIZE; } }
+          else { if (h > MAX_SIZE) { w = Math.round(w * MAX_SIZE / h); h = MAX_SIZE; } }
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.6));
+        };
+        img.onerror = reject;
+        img.src = url;
       });
+
+      const base64 = compressedDataUrl.split(",")[1];
 
       // カテゴリ一覧をAIプロンプトに動的に組み込む
       const catList = categories
@@ -1228,7 +1241,7 @@ export default function App() {
           messages: [{
             role: "user",
             content: [
-              { type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: base64 } },
+              { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
               {
                 type: "text", text: `あなたはフリーランスのアイドル・アーティスト（たきしま）の確定申告を補助するAIです。
 このレシート・領収書を見て、**仕事上の必要経費として認められるか**を日本の税務基準で厳格に3段階判定してください。
@@ -1305,12 +1318,12 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
           memo: parsed.memo,
           reason: parsed.reason,
           grayDetail: parsed.grayDetail || null,
-          // keep full parsed so user can force-register
+          imageUrl: compressedDataUrl, // 強制登録用
           full: parsed,
         });
         setPreviewUrl(null);
       } else {
-        setEditEntry({ ...parsed, id: nextId.current++, imageUrl: url });
+        setEditEntry({ ...parsed, id: nextId.current++, imageUrl: compressedDataUrl });
       }
     } catch (e) {
       setError(e.message || "読み取りに失敗しました。もう一度お試しください。");
@@ -1408,44 +1421,53 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
       `}</style>
 
       {/* ヘッダー */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EEEBE4", padding: "18px 24px 14px", position: "sticky", top: 0, zIndex: 100 }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid #EEEBE4", padding: "16px 20px 14px", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: 640, margin: "0 auto" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1A1714", letterSpacing: -0.5 }}>💼 経費管理</h1>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
+
+            {/* 左側タイトル群 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1A1714", letterSpacing: -0.5, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 22 }}>💼</span> 経費管理
+                </h1>
                 {saveStatus === "saving" && (
-                  <span style={{ fontSize: 11, color: "#bbb", background: "#F5F2EE", padding: "2px 8px", borderRadius: 999 }}>保存中…</span>
+                  <span style={{ fontSize: 10, color: "#bbb", background: "#F5F2EE", padding: "2px 8px", borderRadius: 999 }}>保存中…</span>
                 )}
                 {saveStatus === "saved" && (
-                  <span style={{ fontSize: 11, color: "#4A9B72", background: "#F0FAF4", padding: "2px 8px", borderRadius: 999 }}>✓ 保存済み</span>
+                  <span style={{ fontSize: 10, color: "#4A9B72", background: "#F0FAF4", padding: "2px 8px", borderRadius: 999 }}>✓ 保存済</span>
                 )}
                 {saveStatus === "error" && (
-                  <span style={{ fontSize: 11, color: "#C05050", background: "#FFF0F0", padding: "2px 8px", borderRadius: 999 }}>保存失敗</span>
+                  <span style={{ fontSize: 10, color: "#C05050", background: "#FFF0F0", padding: "2px 8px", borderRadius: 999 }}>失敗</span>
                 )}
               </div>
-              <p style={{ margin: "1px 0 0", fontSize: 12, color: "#bbb" }}>たきしまさん専用</p>
+              <p style={{ margin: 0, fontSize: 11, color: "#aaa" }}>たきしまさん専用</p>
             </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+
+            {/* 右側アクション群 */}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", flex: "1 0 auto" }}>
               <button onClick={() => setShowSettings(true)} style={{
-                background: "#F0EBE0", border: "none", color: "#7A6A55",
-                padding: "7px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600
+                background: "#F5F0E8", border: "none", color: "#5B4A3A",
+                padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                display: "flex", alignItems: "center", gap: 4
               }}>⚙️ 設定</button>
               <button onClick={() => setShowCatModal(true)} style={{
-                background: "#F0EBE0", border: "none", color: "#7A6A55",
-                padding: "7px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600
+                background: "#F5F0E8", border: "none", color: "#5B4A3A",
+                padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                display: "flex", alignItems: "center", gap: 4
               }}>🏷️ カテゴリ</button>
               {mainTab === "expense" && (
                 <button onClick={exportExpenseCSV} style={{
-                  background: "#F0EBE0", border: "none", color: "#7A6A55",
-                  padding: "7px 14px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600
+                  background: "#F5F0E8", border: "none", color: "#5B4A3A",
+                  padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700,
+                  display: "flex", alignItems: "center", gap: 4
                 }}>📥 CSV</button>
               )}
             </div>
           </div>
 
           {/* 年セレクター */}
-          <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {availableYears.map(year => {
               const active = selectedYear === year;
               return (
@@ -1740,7 +1762,7 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
                               amount: rejectedEntry.amount,
                               memo: rejectedEntry.memo,
                               category: rejectedEntry.full?.category || "other",
-                              imageUrl: null,
+                              imageUrl: rejectedEntry.imageUrl || null,
                             }, ...p]);
                             setRejectedEntry(null);
                             setExpTab("list");
