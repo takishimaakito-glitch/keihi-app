@@ -576,9 +576,11 @@ function IncomeTab({ incomes, setIncomes, selectedYear, apiKey }) {
     setViewMode("upload");
   };
 
-  const deleteIncome = (id) => {
+  const deleteIncome = async (id) => {
     if (window.confirm("この収入データを本当に削除しますか？\n（元に戻せません）")) {
       setIncomes(p => p.filter(i => i.id !== id));
+      const { error } = await supabase.from('incomes').delete().eq('id', id);
+      if (error) console.error("Income Delete Error:", error);
     }
   };
 
@@ -1329,9 +1331,11 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
   };
 
   const cancelScan = () => { setEditEntry(null); setPreviewUrl(null); setError(null); setRejectedEntry(null); };
-  const deleteExpense = (id) => {
+  const deleteExpense = async (id) => {
     if (window.confirm("この経費データを本当に削除しますか？\n（元に戻せません）")) {
       setExpenses(p => p.filter(e => e.id !== id));
+      const { error } = await supabase.from('expenses').delete().eq('id', id);
+      if (error) console.error("Expense Delete Error:", error);
     }
   };
   const updateRatio = (id, ratio) => setExpenses(p => p.map(e => e.id === id ? { ...e, ratio } : e));
