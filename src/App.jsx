@@ -389,13 +389,15 @@ function IncomeTab({ incomes, setIncomes, selectedYear }) {
         r.readAsDataURL(file);
       });
 
+      const apiKey = window.__ANTHROPIC_KEY__ || "";
+      if (!apiKey) throw new Error("APIキーが設定されていません");
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
-          "x-api-key": (window.__ANTHROPIC_KEY__ || ""),
+          "x-api-key": apiKey,
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
@@ -939,13 +941,15 @@ export default function App() {
         .join(", ");
       const catIds = categories.filter(c => c.id !== "all").map(c => c.id).join("|");
 
+      const apiKey = window.__ANTHROPIC_KEY__ || "";
+      if (!apiKey) throw new Error("APIキーが設定されていません");
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
-          "x-api-key": (window.__ANTHROPIC_KEY__ || ""),
+          "x-api-key": apiKey,
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
@@ -1007,9 +1011,20 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
         })
       });
 
+      if (!resp.ok) {
+        const errText = await resp.text();
+        if (resp.status === 401) throw new Error("APIキーが無効です(401)");
+        throw new Error("APIエラー(" + resp.status + "): " + errText.slice(0, 80));
+      }
       const data = await resp.json();
+      if (data.error) throw new Error("APIエラー: " + data.error.message);
       const text = data.content?.map(i => i.text || "").join("") || "";
-      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      if (!text) throw new Error("AIの応答が空でした");
+      const clean = text.replace(/```json|```/g, "").trim();
+      const jsonStart = clean.indexOf("{");
+      const jsonEnd = clean.lastIndexOf("}");
+      if (jsonStart === -1) throw new Error("レシートを読み取れませんでした");
+      const parsed = JSON.parse(clean.slice(jsonStart, jsonEnd + 1));
 
       if (parsed.verdict === "ng" || parsed.verdict === "gray") {
         setRejectedEntry({
@@ -1026,8 +1041,8 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
       } else {
         setEditEntry({ ...parsed, id: nextId.current++, imageUrl: url });
       }
-    } catch {
-      setError("読み取りに失敗しました。もう一度お試しください。");
+    } catch (e) {
+      setError(e.message || "読み取りに失敗しました。もう一度お試しください。");
     } finally {
       setScanning(false);
     }
