@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
+import { createClient } from '@supabase/supabase-js';
 
 // ─────────────────────────────────────────────────────────
 // 定数
@@ -947,9 +947,6 @@ export default function App() {
         const savedKey = localStorage.getItem("keihi-api-key");
         if (savedKey) setApiKey(savedKey);
 
-        // Supabase匿名ログイン（念のため）
-        await supabase.auth.signInAnonymously();
-
         // 経費データの読み込み
         const { data: expData, error: expErr } = await supabase.from('expenses').select('*').order('createdAt', { ascending: false });
         if (!expErr && expData?.length > 0) {
@@ -996,25 +993,28 @@ export default function App() {
       try {
         // expensesを一括upsert
         if (expenses.length > 0) {
-          await supabase.from('expenses').upsert(expenses.map(e => ({
+          const { error: expErr } = await supabase.from('expenses').upsert(expenses.map(e => ({
             id: e.id, date: e.date, store: e.store, amount: e.amount,
             category: e.category, memo: e.memo, ratio: e.ratio || 100, imageUrl: e.imageUrl || null
           })));
+          if (expErr) console.error("Expense Save Error:", expErr);
         }
 
         // incomesを一括upsert
         if (incomes.length > 0) {
-          await supabase.from('incomes').upsert(incomes.map(i => ({
+          const { error: incErr } = await supabase.from('incomes').upsert(incomes.map(i => ({
             id: i.id, date: i.date, client: i.client, amount: i.amount,
             withholding: i.withholding || 0, memo: i.memo, invoiceNo: i.invoiceNo || null
           })));
+          if (incErr) console.error("Income Save Error:", incErr);
         }
 
         // categoriesを一括upsert
         if (categories.length > 0) {
-          await supabase.from('categories').upsert(categories.map(c => ({
+          const { error: catErr } = await supabase.from('categories').upsert(categories.map(c => ({
             id: c.id, label: c.label, icon: c.icon, color: c.color, bg: c.bg, keywords: c.keywords || ""
           })));
+          if (catErr) console.error("Category Save Error:", catErr);
         }
 
         setSaveStatus("saved");
