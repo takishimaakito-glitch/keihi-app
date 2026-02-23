@@ -576,7 +576,11 @@ function IncomeTab({ incomes, setIncomes, selectedYear, apiKey }) {
     setViewMode("upload");
   };
 
-  const deleteIncome = (id) => setIncomes(p => p.filter(i => i.id !== id));
+  const deleteIncome = (id) => {
+    if (window.confirm("この収入データを本当に削除しますか？\n（元に戻せません）")) {
+      setIncomes(p => p.filter(i => i.id !== id));
+    }
+  };
 
   const exportIncomeCSV = () => {
     const rows = [
@@ -830,7 +834,7 @@ function IncomeTab({ incomes, setIncomes, selectedYear, apiKey }) {
         </div>
       )}
       {filtered.map(inc => (
-        <IncomeCard key={inc.id} inc={inc} onDelete={deleteIncome} />
+        <IncomeCard key={inc.id} inc={inc} onDelete={deleteIncome} onEdit={editIncome} />
       ))}
     </div>
   );
@@ -1157,6 +1161,12 @@ export default function App() {
       if (exists) return p.map(e => e.id === manualEntry.id ? entry : e);
       return [entry, ...p];
     });
+    if (manualEntry.date) {
+      const y = getYear(manualEntry.date);
+      if (y && y !== selectedYear && availableYears.includes(y)) {
+        setSelectedYear(y);
+      }
+    }
     setManualEntry(null);
     setExpTab("list");
   };
@@ -1307,13 +1317,23 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
   const saveEntry = () => {
     if (!editEntry) return;
     setExpenses(p => [{ ...editEntry, ratio: editEntry.ratio ?? 100 }, ...p]);
+    if (editEntry.date) {
+      const y = getYear(editEntry.date);
+      if (y && y !== selectedYear && availableYears.includes(y)) {
+        setSelectedYear(y);
+      }
+    }
     setEditEntry(null);
     setPreviewUrl(null);
     setExpTab("list");
   };
 
   const cancelScan = () => { setEditEntry(null); setPreviewUrl(null); setError(null); setRejectedEntry(null); };
-  const deleteExpense = (id) => setExpenses(p => p.filter(e => e.id !== id));
+  const deleteExpense = (id) => {
+    if (window.confirm("この経費データを本当に削除しますか？\n（元に戻せません）")) {
+      setExpenses(p => p.filter(e => e.id !== id));
+    }
+  };
   const updateRatio = (id, ratio) => setExpenses(p => p.map(e => e.id === id ? { ...e, ratio } : e));
 
   // 集計（選択年のみ）
@@ -1508,7 +1528,7 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
                   </div>
                 )}
                 {filtered.map(exp => (
-                  <ExpenseCard key={exp.id} exp={exp} onDelete={deleteExpense} onImageClick={setLightboxUrl} onRatioChange={updateRatio} cats={categories} />
+                  <ExpenseCard key={exp.id} exp={exp} onDelete={deleteExpense} onEdit={editExpense} onImageClick={setLightboxUrl} onRatioChange={updateRatio} cats={categories} />
                 ))}
               </div>
             )}
@@ -1731,7 +1751,7 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
                       <span style={{ fontSize: 18 }}>✅</span>
                       <span style={{ fontWeight: 700, color: "#4A9B72", fontSize: 14 }}>読み取り完了！内容を確認してください</span>
                     </div>
-                    {[{ key: "date", label: "📅 日付", type: "date" }, { key: "store", label: "🏪 店名", type: "text" }, { key: "memo", label: "📝 内容", type: "text" }].map(({ key, label, type }) => (
+                    {[{ key: "date", label: "📅 日付", type: "date" }, { key: "store", label: "🏪 店名", type: "text" }, { key: "memo", label: "📝 内容", type: "text" }, { key: "invoiceNo", label: "🔖 インボイス番号", type: "text" }].map(({ key, label, type }) => (
                       <InputField key={key} label={label} value={editEntry[key]} type={type}
                         onChange={e => setEditEntry(p => ({ ...p, [key]: e.target.value }))} />
                     ))}
