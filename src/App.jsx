@@ -948,7 +948,7 @@ export default function App() {
         if (savedKey) setApiKey(savedKey);
 
         // 経費データの読み込み
-        const { data: expData, error: expErr } = await supabase.from('expenses').select('*').order('createdAt', { ascending: false });
+        const { data: expData, error: expErr } = await supabase.from('expenses').select('*').order('created_at', { ascending: false });
         if (!expErr && expData?.length > 0) {
           setExpenses(expData.map(e => ({ ...e, ratio: Number(e.ratio), amount: Number(e.amount) })));
         } else {
@@ -956,7 +956,7 @@ export default function App() {
         }
 
         // 収入データの読み込み
-        const { data: incData, error: incErr } = await supabase.from('incomes').select('*').order('createdAt', { ascending: false });
+        const { data: incData, error: incErr } = await supabase.from('incomes').select('*').order('created_at', { ascending: false });
         if (!incErr && incData?.length > 0) {
           setIncomes(incData.map(i => ({ ...i, amount: Number(i.amount), withholding: Number(i.withholding) })));
         } else {
