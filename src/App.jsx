@@ -4,13 +4,13 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 // 定数
 // ─────────────────────────────────────────────────────────
 const DEFAULT_CATEGORIES = [
-  { id: "all",       label: "すべて",            icon: "📊", color: "#6B7280", bg: "#F3F4F6", keywords: "" },
-  { id: "costume",   label: "衣装・コスチューム", icon: "👗", color: "#DB6B8A", bg: "#FDF2F5", keywords: "衣装,コスチューム,服,アクセサリー,ウィッグ" },
-  { id: "meeting",   label: "打ち合わせ",         icon: "☕", color: "#C07A3A", bg: "#FDF6EE", keywords: "カフェ,レストラン,飲食,コーヒー,食事,ランチ,ディナー" },
-  { id: "health",    label: "健康管理",           icon: "🌿", color: "#4A9B72", bg: "#F0FAF4", keywords: "ジム,フィットネス,スポーツ,健康,プロテイン,サプリ" },
-  { id: "transport", label: "交通費",             icon: "🚃", color: "#4A7BC4", bg: "#EFF5FD", keywords: "電車,バス,タクシー,交通,新幹線,飛行機,駐車場" },
-  { id: "equipment", label: "機材・備品",         icon: "🎤", color: "#7C5FC4", bg: "#F5F0FD", keywords: "機材,マイク,カメラ,照明,備品,電子機器,ケーブル" },
-  { id: "other",     label: "その他",             icon: "📌", color: "#8B8080", bg: "#F5F2F2", keywords: "" },
+  { id: "all", label: "すべて", icon: "📊", color: "#6B7280", bg: "#F3F4F6", keywords: "" },
+  { id: "costume", label: "衣装・コスチューム", icon: "👗", color: "#DB6B8A", bg: "#FDF2F5", keywords: "衣装,コスチューム,服,アクセサリー,ウィッグ" },
+  { id: "meeting", label: "打ち合わせ", icon: "☕", color: "#C07A3A", bg: "#FDF6EE", keywords: "カフェ,レストラン,飲食,コーヒー,食事,ランチ,ディナー" },
+  { id: "health", label: "健康管理", icon: "🌿", color: "#4A9B72", bg: "#F0FAF4", keywords: "ジム,フィットネス,スポーツ,健康,プロテイン,サプリ" },
+  { id: "transport", label: "交通費", icon: "🚃", color: "#4A7BC4", bg: "#EFF5FD", keywords: "電車,バス,タクシー,交通,新幹線,飛行機,駐車場" },
+  { id: "equipment", label: "機材・備品", icon: "🎤", color: "#7C5FC4", bg: "#F5F0FD", keywords: "機材,マイク,カメラ,照明,備品,電子機器,ケーブル" },
+  { id: "other", label: "その他", icon: "📌", color: "#8B8080", bg: "#F5F2F2", keywords: "" },
 ];
 
 const COLOR_PALETTE = [
@@ -23,25 +23,25 @@ const COLOR_PALETTE = [
 ];
 
 const SAMPLE_EXPENSES = [
-  { id: 1, date: "2025-11-03", store: "コスチュームショップ ユニバース", amount: 12800, memo: "ユナイト公式衣装代",       category: "costume",   imageUrl: null },
-  { id: 2, date: "2025-11-05", store: "スターバックス 渋谷店",           amount: 1640,  memo: "おぶやんさんとの打ち合わせ", category: "meeting",   imageUrl: null },
-  { id: 3, date: "2025-11-07", store: "エニタイムフィットネス",            amount: 7700,  memo: "ジム月会費",             category: "health",    imageUrl: null },
-  { id: 4, date: "2025-11-10", store: "JR東日本",                        amount: 2340,  memo: "ライブ会場への交通費",    category: "transport", imageUrl: null },
-  { id: 5, date: "2026-01-15", store: "コスチュームショップ ユニバース", amount: 18000, memo: "新衣装代",               category: "costume",   imageUrl: null },
-  { id: 6, date: "2026-02-03", store: "エニタイムフィットネス",            amount: 7700,  memo: "ジム月会費",             category: "health",    imageUrl: null },
+  { id: 1, date: "2025-11-03", store: "コスチュームショップ ユニバース", amount: 12800, memo: "ユナイト公式衣装代", category: "costume", imageUrl: null },
+  { id: 2, date: "2025-11-05", store: "スターバックス 渋谷店", amount: 1640, memo: "おぶやんさんとの打ち合わせ", category: "meeting", imageUrl: null },
+  { id: 3, date: "2025-11-07", store: "エニタイムフィットネス", amount: 7700, memo: "ジム月会費", category: "health", imageUrl: null },
+  { id: 4, date: "2025-11-10", store: "JR東日本", amount: 2340, memo: "ライブ会場への交通費", category: "transport", imageUrl: null },
+  { id: 5, date: "2026-01-15", store: "コスチュームショップ ユニバース", amount: 18000, memo: "新衣装代", category: "costume", imageUrl: null },
+  { id: 6, date: "2026-02-03", store: "エニタイムフィットネス", amount: 7700, memo: "ジム月会費", category: "health", imageUrl: null },
 ];
 
 const SAMPLE_INCOME = [
-  { id: 101, date: "2025-10-31", client: "株式会社ユナイト",   amount: 150000, withholding: 15000, memo: "10月度出演料",    invoiceNo: "INV-2025-010" },
-  { id: 102, date: "2025-11-30", client: "○○プロダクション", amount: 80000,  withholding: 8000,  memo: "11月撮影出演費", invoiceNo: "INV-2025-011" },
-  { id: 103, date: "2025-11-15", client: "株式会社ユナイト",   amount: 50000,  withholding: 5000,  memo: "グッズ監修費",   invoiceNo: "INV-2025-012" },
-  { id: 104, date: "2026-01-31", client: "株式会社ユナイト",   amount: 160000, withholding: 16000, memo: "1月度出演料",    invoiceNo: "INV-2026-001" },
-  { id: 105, date: "2026-02-15", client: "○○プロダクション", amount: 90000,  withholding: 9000,  memo: "2月撮影出演費", invoiceNo: "INV-2026-002" },
+  { id: 101, date: "2025-10-31", client: "株式会社ユナイト", amount: 150000, withholding: 15000, memo: "10月度出演料", invoiceNo: "INV-2025-010" },
+  { id: 102, date: "2025-11-30", client: "○○プロダクション", amount: 80000, withholding: 8000, memo: "11月撮影出演費", invoiceNo: "INV-2025-011" },
+  { id: 103, date: "2025-11-15", client: "株式会社ユナイト", amount: 50000, withholding: 5000, memo: "グッズ監修費", invoiceNo: "INV-2025-012" },
+  { id: 104, date: "2026-01-31", client: "株式会社ユナイト", amount: 160000, withholding: 16000, memo: "1月度出演料", invoiceNo: "INV-2026-001" },
+  { id: 105, date: "2026-02-15", client: "○○プロダクション", amount: 90000, withholding: 9000, memo: "2月撮影出演費", invoiceNo: "INV-2026-002" },
 ];
 
-const fmt    = (n) => `¥${Number(n).toLocaleString()}`;
+const fmt = (n) => `¥${Number(n).toLocaleString()}`;
 const fmtDate = (s) => s?.replace(/-/g, "/") ?? "";
-const getCat  = (id, cats) => (cats || DEFAULT_CATEGORIES).find(c => c.id === id) ?? DEFAULT_CATEGORIES[DEFAULT_CATEGORIES.length - 1];
+const getCat = (id, cats) => (cats || DEFAULT_CATEGORIES).find(c => c.id === id) ?? DEFAULT_CATEGORIES[DEFAULT_CATEGORIES.length - 1];
 const getYear = (dateStr) => dateStr ? parseInt(dateStr.slice(0, 4), 10) : null;
 const effectiveAmount = (exp) => Math.round((exp.amount * (exp.ratio ?? 100)) / 100);
 const THIS_YEAR = new Date().getFullYear();
@@ -74,7 +74,7 @@ function InputField({ label, value, onChange, type = "text", onFocus, onBlur }) 
       <label style={{ fontSize: 12, color: "#888", display: "block", marginBottom: 4, fontWeight: 600 }}>{label}</label>
       <input type={type} value={value ?? ""} onChange={onChange} style={base}
         onFocus={e => { e.target.style.borderColor = "#A08F7A"; onFocus?.(); }}
-        onBlur={e =>  { e.target.style.borderColor = "#E8E2D8"; onBlur?.(); }} />
+        onBlur={e => { e.target.style.borderColor = "#E8E2D8"; onBlur?.(); }} />
     </div>
   );
 }
@@ -113,7 +113,7 @@ function ImageModal({ url, onClose }) {
 // カテゴリ管理モーダル
 // ─────────────────────────────────────────────────────────
 function CategoryModal({ categories, onAdd, onDelete, onClose, newCat, setNewCat }) {
-  const ICONS = ["🏷️","👗","☕","🌿","🚃","🎤","📌","🎵","📸","✈️","🎭","🎁","🏠","💄","📚","🎨","💊","🍱","🎮","💻"];
+  const ICONS = ["🏷️", "👗", "☕", "🌿", "🚃", "🎤", "📌", "🎵", "📸", "✈️", "🎭", "🎁", "🏠", "💄", "📚", "🎨", "💊", "🍱", "🎮", "💻"];
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000,
@@ -211,9 +211,72 @@ function CategoryModal({ categories, onAdd, onDelete, onClose, newCat, setNewCat
 }
 
 // ─────────────────────────────────────────────────────────
+// 設定モーダル
+// ─────────────────────────────────────────────────────────
+function SettingsModal({ apiKey, setApiKey, onClose }) {
+  const [inputKey, setInputKey] = useState(apiKey);
+
+  const handleSave = () => {
+    setApiKey(inputKey);
+    localStorage.setItem("keihi-api-key", inputKey);
+    onClose();
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: "#fff", borderRadius: 24, padding: "24px",
+        width: "100%", maxWidth: 500, boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+        animation: "fadeUp 0.3s ease"
+      }}>
+        <div style={{ fontWeight: 800, fontSize: 18, color: "#1A1714", marginBottom: 16 }}>⚙️ アプリ設定</div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 13, color: "#5B4A3A", display: "block", marginBottom: 8, fontWeight: 700 }}>
+            Anthropic API キー
+          </label>
+          <input
+            type="password"
+            placeholder="sk-ant-..."
+            value={inputKey}
+            onChange={e => setInputKey(e.target.value)}
+            style={{
+              width: "100%", border: "1.5px solid #E8E2D8", borderRadius: 10,
+              padding: "12px 14px", fontSize: 14, color: "#1A1714", background: "#FDFBF8",
+              outline: "none", boxSizing: "border-box"
+            }}
+            onFocus={e => e.target.style.borderColor = "#A08F7A"}
+            onBlur={e => e.target.style.borderColor = "#E8E2D8"}
+          />
+          <div style={{ fontSize: 11, color: "#888", marginTop: 8, lineHeight: 1.5 }}>
+            ※ レシートや請求書のAI読み取りに使用します。<br />
+            ※ APIキーはお使いのブラウザ（ローカル）にのみ保存されます。
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{
+            padding: "10px 16px", borderRadius: 12, border: "none", cursor: "pointer",
+            background: "#F0EBE0", color: "#7A6A55", fontWeight: 700, fontSize: 14
+          }}>キャンセル</button>
+          <button onClick={handleSave} style={{
+            padding: "10px 20px", borderRadius: 12, border: "none", cursor: "pointer",
+            background: "#5B4A3A", color: "#fff", fontWeight: 700, fontSize: 14,
+            boxShadow: "0 2px 8px rgba(91,74,58,0.3)"
+          }}>保存する</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
 // 経費カード
 // ─────────────────────────────────────────────────────────
-function ExpenseCard({ exp, onDelete, onImageClick, onRatioChange, cats }) {
+function ExpenseCard({ exp, onDelete, onEdit, onImageClick, onRatioChange, cats }) {
   const cat = getCat(exp.category, cats);
   const [showRatio, setShowRatio] = useState(false);
   const ratio = exp.ratio ?? 100;
@@ -260,6 +323,7 @@ function ExpenseCard({ exp, onDelete, onImageClick, onRatioChange, cats }) {
               background: showRatio ? "#FDF6EE" : "none", border: `1px solid ${showRatio ? "#C07A3A44" : "#e5e5e5"}`,
               color: showRatio ? "#C07A3A" : "#bbb", padding: "3px 8px", borderRadius: 8, cursor: "pointer", fontSize: 11, fontWeight: 600
             }}>按分</button>
+            <button onClick={() => onEdit && onEdit(exp)} style={{ background: "none", border: "1px solid #e5e5e5", color: "#6B7280", padding: "3px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>編集</button>
             <button onClick={() => onDelete(exp.id)} style={{ background: "none", border: "1px solid #e5e5e5", color: "#bbb", padding: "3px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>削除</button>
           </div>
         </div>
@@ -301,7 +365,7 @@ function ExpenseCard({ exp, onDelete, onImageClick, onRatioChange, cats }) {
 // ─────────────────────────────────────────────────────────
 // 収入カード
 // ─────────────────────────────────────────────────────────
-function IncomeCard({ inc, onDelete }) {
+function IncomeCard({ inc, onDelete, onEdit }) {
   const net = inc.amount - (inc.withholding || 0);
   return (
     <div style={{
@@ -333,7 +397,10 @@ function IncomeCard({ inc, onDelete }) {
           <div style={{ fontSize: 12, color: "#4A9B72", fontWeight: 600, marginTop: 2 }}>
             手取 {fmt(net)}
           </div>
-          <button onClick={() => onDelete(inc.id)} style={{ marginTop: 6, background: "none", border: "1px solid #e5e5e5", color: "#bbb", padding: "3px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>削除</button>
+          <div style={{ display: "flex", gap: 6, marginTop: 6, justifyContent: "flex-end" }}>
+            <button onClick={() => onEdit && onEdit(inc)} style={{ background: "none", border: "1px solid #e5e5e5", color: "#6B7280", padding: "3px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>編集</button>
+            <button onClick={() => onDelete(inc.id)} style={{ background: "none", border: "1px solid #e5e5e5", color: "#bbb", padding: "3px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>削除</button>
+          </div>
         </div>
       </div>
     </div>
@@ -343,24 +410,23 @@ function IncomeCard({ inc, onDelete }) {
 // ─────────────────────────────────────────────────────────
 // 収入タブ — PDF読み取り
 // ─────────────────────────────────────────────────────────
-function IncomeTab({ incomes, setIncomes, selectedYear }) {
-  const [reading, setReading]       = useState(false);
-  const [editInc, setEditInc]       = useState(null);
-  const [error, setError]           = useState(null);
-  const [pdfName, setPdfName]       = useState(null);
-  const [filterClient, setFilter]   = useState("all");
-  const [viewMode, setViewMode]     = useState("list"); // "list" | "upload"
+function IncomeTab({ incomes, setIncomes, selectedYear, apiKey }) {
+  const [reading, setReading] = useState(false);
+  const [editInc, setEditInc] = useState(null);
+  const [error, setError] = useState(null);
+  const [pdfName, setPdfName] = useState(null);
+  const [filterClient, setFilter] = useState("all");
+  const [viewMode, setViewMode] = useState("list"); // "list" | "upload"
   const fileRef = useRef();
-  const nextId  = useRef(300);
 
   // クライアント一覧
   const yearIncomes = incomes.filter(i => getYear(i.date) === selectedYear);
   const clients = ["all", ...Array.from(new Set(yearIncomes.map(i => i.client)))];
 
   // 集計
-  const filtered    = filterClient === "all" ? yearIncomes : yearIncomes.filter(i => i.client === filterClient);
+  const filtered = filterClient === "all" ? yearIncomes : yearIncomes.filter(i => i.client === filterClient);
   const totalAmount = filtered.reduce((s, i) => s + i.amount, 0);
-  const totalWith   = filtered.reduce((s, i) => s + (i.withholding || 0), 0);
+  const totalWith = filtered.reduce((s, i) => s + (i.withholding || 0), 0);
 
   // 会社ごとのサマリー
   const byCo = Array.from(
@@ -389,15 +455,15 @@ function IncomeTab({ incomes, setIncomes, selectedYear }) {
         r.readAsDataURL(file);
       });
 
-      const apiKey = window.__ANTHROPIC_KEY__ || "";
-      if (!apiKey) throw new Error("APIキーが設定されていません");
+      const keyToUse = apiKey || window.__ANTHROPIC_KEY__ || "";
+      if (!keyToUse) throw new Error("APIキーが設定されていません。右上の「⚙️設定」から登録してください。");
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
-          "x-api-key": apiKey,
+          "x-api-key": keyToUse,
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
@@ -430,7 +496,7 @@ function IncomeTab({ incomes, setIncomes, selectedYear }) {
       const text = data.content?.map(i => i.text || "").join("") || "";
       const clean = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
-      setEditInc({ ...parsed, id: nextId.current++ });
+      setEditInc({ ...parsed, id: Date.now() });
     } catch (e) {
       setError("PDFの読み取りに失敗しました。別のファイルを試してください。");
     } finally {
@@ -440,10 +506,19 @@ function IncomeTab({ incomes, setIncomes, selectedYear }) {
 
   const saveIncome = () => {
     if (!editInc) return;
-    setIncomes(p => [editInc, ...p]);
+    setIncomes(p => {
+      const exists = p.some(i => i.id === editInc.id);
+      if (exists) return p.map(i => i.id === editInc.id ? editInc : i);
+      return [editInc, ...p];
+    });
     setEditInc(null);
     setPdfName(null);
     setViewMode("list");
+  };
+
+  const editIncome = (inc) => {
+    setEditInc(inc);
+    setViewMode("upload");
   };
 
   const deleteIncome = (id) => setIncomes(p => p.filter(i => i.id !== id));
@@ -513,14 +588,41 @@ function IncomeTab({ incomes, setIncomes, selectedYear }) {
       )}
 
       {/* 操作バー */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <button onClick={() => setViewMode(viewMode === "upload" ? "list" : "upload")} style={{
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <button onClick={() => {
+          if (viewMode === "list" || editInc) {
+            setEditInc(null);
+            setPdfName(null);
+            setViewMode("upload");
+          } else {
+            setViewMode("list");
+          }
+        }} style={{
           flex: 1, padding: "11px", borderRadius: 12, border: "none", cursor: "pointer",
-          background: viewMode === "upload" ? "#4A9B72" : "#E8F5EE",
-          color: viewMode === "upload" ? "#fff" : "#4A9B72",
+          background: viewMode === "upload" && !editInc ? "#4A9B72" : "#E8F5EE",
+          color: viewMode === "upload" && !editInc ? "#fff" : "#4A9B72",
           fontWeight: 700, fontSize: 14, transition: "all 0.2s"
         }}>
-          {viewMode === "upload" ? "✕ 閉じる" : "＋ 請求書を追加"}
+          {viewMode === "upload" && !editInc ? "✕ 閉じる" : "＋ 請求書読取"}
+        </button>
+        <button onClick={() => {
+          if (viewMode === "list" || !editInc || pdfName) {
+            const today = new Date();
+            const mm = String(today.getMonth() + 1).padStart(2, "0");
+            const dd = String(today.getDate()).padStart(2, "0");
+            setEditInc({ id: Date.now(), date: `${selectedYear}-${mm}-${dd}`, client: "", amount: "", withholding: "", memo: "", invoiceNo: "" });
+            setPdfName(null);
+            setViewMode("upload");
+          } else {
+            setViewMode("list");
+          }
+        }} style={{
+          flex: 1, padding: "11px", borderRadius: 12, border: "none", cursor: "pointer",
+          background: viewMode === "upload" && editInc && !pdfName ? "#4A9B72" : "#E8F5EE",
+          color: viewMode === "upload" && editInc && !pdfName ? "#fff" : "#4A9B72",
+          fontWeight: 700, fontSize: 14, transition: "all 0.2s"
+        }}>
+          {viewMode === "upload" && editInc && !pdfName ? "✕ 閉じる" : "✏️ 手入力"}
         </button>
         <button onClick={exportIncomeCSV} style={{
           padding: "11px 16px", borderRadius: 12, border: "none", cursor: "pointer",
@@ -533,64 +635,68 @@ function IncomeTab({ incomes, setIncomes, selectedYear }) {
       {/* アップロードセクション */}
       {viewMode === "upload" && (
         <div style={{ marginBottom: 16, animation: "fadeUp 0.25s ease" }}>
-          <SectionCard>
-            <div style={{ fontWeight: 700, color: "#2D5A3D", fontSize: 15, marginBottom: 14 }}>📄 請求書PDF読み取り</div>
+          {(!editInc || pdfName) && (
+            <SectionCard>
+              <div style={{ fontWeight: 700, color: "#2D5A3D", fontSize: 15, marginBottom: 14 }}>📄 請求書PDF読み取り</div>
 
-            {!pdfName ? (
-              <div
-                onClick={() => fileRef.current.click()}
-                onDrop={e => { e.preventDefault(); handlePDF(e.dataTransfer.files[0]); }}
-                onDragOver={e => e.preventDefault()}
-                style={{
-                  border: "2px dashed #B8D8C4", borderRadius: 16, padding: "40px 20px",
-                  textAlign: "center", cursor: "pointer", background: "#F5FBF7",
-                  transition: "all 0.2s"
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#4A9B72"; e.currentTarget.style.background = "#EEF8F2"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#B8D8C4"; e.currentTarget.style.background = "#F5FBF7"; }}
-              >
-                <div style={{ fontSize: 44, marginBottom: 12 }}>📄</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#2D5A3D", marginBottom: 6 }}>請求書PDFをアップロード</div>
-                <div style={{ fontSize: 13, color: "#8AAF96" }}>タップまたはドラッグ＆ドロップ</div>
-                <input ref={fileRef} type="file" accept="application/pdf" style={{ display: "none" }}
-                  onChange={e => handlePDF(e.target.files[0])} />
-              </div>
-            ) : (
-              <div style={{
-                background: "#F5FBF7", borderRadius: 12, padding: "14px 16px",
-                display: "flex", alignItems: "center", gap: 12, marginBottom: 8
-              }}>
-                <span style={{ fontSize: 28 }}>📄</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: "#2D5A3D" }}>{pdfName}</div>
-                  <div style={{ fontSize: 12, color: "#8AAF96" }}>読み取り済み</div>
+              {!pdfName ? (
+                <div
+                  onClick={() => fileRef.current.click()}
+                  onDrop={e => { e.preventDefault(); handlePDF(e.dataTransfer.files[0]); }}
+                  onDragOver={e => e.preventDefault()}
+                  style={{
+                    border: "2px dashed #B8D8C4", borderRadius: 16, padding: "40px 20px",
+                    textAlign: "center", cursor: "pointer", background: "#F5FBF7",
+                    transition: "all 0.2s"
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#4A9B72"; e.currentTarget.style.background = "#EEF8F2"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#B8D8C4"; e.currentTarget.style.background = "#F5FBF7"; }}
+                >
+                  <div style={{ fontSize: 44, marginBottom: 12 }}>📄</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#2D5A3D", marginBottom: 6 }}>請求書PDFをアップロード</div>
+                  <div style={{ fontSize: 13, color: "#8AAF96" }}>タップまたはドラッグ＆ドロップ</div>
+                  <input ref={fileRef} type="file" accept="application/pdf" style={{ display: "none" }}
+                    onChange={e => handlePDF(e.target.files[0])} />
                 </div>
-                <button onClick={() => { setPdfName(null); setEditInc(null); }} style={{
-                  background: "none", border: "none", color: "#aaa", cursor: "pointer", fontSize: 18
-                }}>✕</button>
-              </div>
-            )}
+              ) : (
+                <div style={{
+                  background: "#F5FBF7", borderRadius: 12, padding: "14px 16px",
+                  display: "flex", alignItems: "center", gap: 12, marginBottom: 8
+                }}>
+                  <span style={{ fontSize: 28 }}>📄</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: "#2D5A3D" }}>{pdfName}</div>
+                    <div style={{ fontSize: 12, color: "#8AAF96" }}>読み取り済み</div>
+                  </div>
+                  <button onClick={() => { setPdfName(null); setEditInc(null); }} style={{
+                    background: "none", border: "none", color: "#aaa", cursor: "pointer", fontSize: 18
+                  }}>✕</button>
+                </div>
+              )}
 
-            {reading && (
-              <div style={{ textAlign: "center", padding: "24px 0" }}>
-                <div style={{ fontSize: 30, display: "inline-block", animation: "spin 1.2s linear infinite", marginBottom: 8 }}>⚙️</div>
-                <div style={{ color: "#2D5A3D", fontWeight: 600 }}>AIがPDFを読み取り中…</div>
-              </div>
-            )}
+              {reading && (
+                <div style={{ textAlign: "center", padding: "24px 0" }}>
+                  <div style={{ fontSize: 30, display: "inline-block", animation: "spin 1.2s linear infinite", marginBottom: 8 }}>⚙️</div>
+                  <div style={{ color: "#2D5A3D", fontWeight: 600 }}>AIがPDFを読み取り中…</div>
+                </div>
+              )}
 
-            {error && (
-              <div style={{ background: "#FFF0F0", border: "1px solid #FECACA", borderRadius: 12, padding: "12px 16px", color: "#C05050", fontSize: 14, marginTop: 8 }}>
-                ⚠️ {error}
-              </div>
-            )}
-          </SectionCard>
+              {error && (
+                <div style={{ background: "#FFF0F0", border: "1px solid #FECACA", borderRadius: 12, padding: "12px 16px", color: "#C05050", fontSize: 14, marginTop: 8 }}>
+                  ⚠️ {error}
+                </div>
+              )}
+            </SectionCard>
+          )}
 
           {/* 編集フォーム */}
           {editInc && (
             <SectionCard style={{ marginTop: 12, animation: "fadeUp 0.25s ease" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
-                <span style={{ fontSize: 20 }}>✅</span>
-                <span style={{ fontWeight: 700, color: "#4A9B72", fontSize: 15 }}>読み取り完了！内容を確認してください</span>
+                <span style={{ fontSize: 20 }}>{pdfName ? "✅" : "✏️"}</span>
+                <span style={{ fontWeight: 700, color: "#4A9B72", fontSize: 15 }}>
+                  {pdfName ? "読み取り完了！内容を確認してください" : "手入力内容を設定してください"}
+                </span>
               </div>
 
               <InputField label="📅 支払日" value={editInc.date} type="date"
@@ -679,7 +785,7 @@ function IncomeTab({ incomes, setIncomes, selectedYear }) {
 // 月次グラフ
 // ─────────────────────────────────────────────────────────
 function MonthlyChart({ yearExpenses, yearIncomes, selectedYear }) {
-  const MONTHS = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+  const MONTHS = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
   const [mode, setMode] = useState("expense"); // "expense" | "income" | "both"
 
   const monthlyData = MONTHS.map((label, i) => {
@@ -691,9 +797,9 @@ function MonthlyChart({ yearExpenses, yearIncomes, selectedYear }) {
   });
 
   const maxVal = Math.max(...monthlyData.map(d => mode === "income" ? d.inc : mode === "expense" ? d.exp : Math.max(d.exp, d.inc)), 1);
-  const BAR_H  = 120;
-  const BAR_W  = 28;
-  const GAP    = 8;
+  const BAR_H = 120;
+  const BAR_W = 28;
+  const GAP = 8;
   const TOTAL_W = monthlyData.length * (BAR_W + GAP);
 
   return (
@@ -701,7 +807,7 @@ function MonthlyChart({ yearExpenses, yearIncomes, selectedYear }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "#5B4A3A" }}>📅 月次推移</div>
         <div style={{ display: "flex", background: "#F5F0E8", borderRadius: 10, padding: 3, gap: 2 }}>
-          {[["expense","経費"],["income","収入"],["both","両方"]].map(([v, l]) => (
+          {[["expense", "経費"], ["income", "収入"], ["both", "両方"]].map(([v, l]) => (
             <button key={v} onClick={() => setMode(v)} style={{
               padding: "4px 10px", borderRadius: 8, border: "none", cursor: "pointer",
               fontSize: 11, fontWeight: 700, transition: "all 0.15s",
@@ -726,8 +832,8 @@ function MonthlyChart({ yearExpenses, yearIncomes, selectedYear }) {
 
           {monthlyData.map((d, i) => {
             const x = i * (BAR_W + GAP);
-            const expH  = (d.exp / maxVal) * BAR_H;
-            const incH  = (d.inc / maxVal) * BAR_H;
+            const expH = (d.exp / maxVal) * BAR_H;
+            const incH = (d.inc / maxVal) * BAR_H;
             const hasData = d.exp > 0 || d.inc > 0;
             return (
               <g key={i}>
@@ -804,44 +910,49 @@ function MonthlyChart({ yearExpenses, yearIncomes, selectedYear }) {
 // メインアプリ
 // ─────────────────────────────────────────────────────────
 export default function App() {
-  const [expenses, setExpenses]     = useState(SAMPLE_EXPENSES);
-  const [incomes, setIncomes]       = useState(SAMPLE_INCOME);
+  const [expenses, setExpenses] = useState(SAMPLE_EXPENSES);
+  const [incomes, setIncomes] = useState(SAMPLE_INCOME);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [selectedYear, setSelectedYear] = useState(THIS_YEAR);
-  const [mainTab, setMainTab]       = useState("expense");
-  const [expTab, setExpTab]         = useState("list");
-  const [filterCat, setFilterCat]   = useState("all");
-  const [scanning, setScanning]     = useState(false);
+  const [mainTab, setMainTab] = useState("expense");
+  const [expTab, setExpTab] = useState("list");
+  const [filterCat, setFilterCat] = useState("all");
+  const [scanning, setScanning] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [editEntry, setEditEntry]   = useState(null);
+  const [editEntry, setEditEntry] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
-  const [error, setError]           = useState(null);
+  const [error, setError] = useState(null);
   const [manualEntry, setManualEntry] = useState(null);
   const [showCatModal, setShowCatModal] = useState(false);
-  const [newCat, setNewCat]         = useState({ label: "", icon: "🏷️", keywords: "" });
+  const [newCat, setNewCat] = useState({ label: "", icon: "🏷️", keywords: "" });
   const [rejectedEntry, setRejectedEntry] = useState(null);
   const [storageReady, setStorageReady] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null); // "saving" | "saved" | "error"
+  const [apiKey, setApiKey] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
   const fileRef = useRef();
-  const nextId  = useRef(200);
-  const catId   = useRef(100);
+  const nextId = useRef(200);
+  const catId = useRef(100);
   const saveTimer = useRef(null);
 
   // ── ストレージからの初期ロード ──
   useEffect(() => {
-    const load = async () => {
+    const load = () => {
       try {
-        const result = await window.storage.get("keihi-data");
-        if (result?.value) {
-          const data = JSON.parse(result.value);
-          if (data.expenses?.length)  setExpenses(data.expenses);
-          if (data.incomes?.length)   setIncomes(data.incomes);
+        const savedKey = localStorage.getItem("keihi-api-key");
+        if (savedKey) setApiKey(savedKey);
+
+        const result = localStorage.getItem("keihi-data");
+        if (result) {
+          const data = JSON.parse(result);
+          if (data.expenses?.length) setExpenses(data.expenses);
+          if (data.incomes?.length) setIncomes(data.incomes);
           if (data.categories?.length) setCategories(data.categories);
-          if (data.nextId)  nextId.current = data.nextId;
-          if (data.catId)   catId.current  = data.catId;
+          if (data.nextId) nextId.current = data.nextId;
+          if (data.catId) catId.current = data.catId;
         }
       } catch (e) {
-        // ストレージ未対応 or キーなし → サンプルデータのまま使う
+        // ストレージエラー → サンプルデータのまま使う
       } finally {
         setStorageReady(true);
       }
@@ -854,17 +965,17 @@ export default function App() {
     if (!storageReady) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus("saving");
-    saveTimer.current = setTimeout(async () => {
+    saveTimer.current = setTimeout(() => {
       try {
         const data = {
           expenses,
           incomes,
           categories,
           nextId: nextId.current,
-          catId:  catId.current,
+          catId: catId.current,
           savedAt: new Date().toISOString(),
         };
-        await window.storage.set("keihi-data", JSON.stringify(data));
+        localStorage.setItem("keihi-data", JSON.stringify(data));
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus(null), 2000);
       } catch (e) {
@@ -911,9 +1022,19 @@ export default function App() {
 
   const saveManual = () => {
     if (!manualEntry || !manualEntry.store || !manualEntry.amount) return;
-    setExpenses(p => [{ ...manualEntry, amount: parseInt(manualEntry.amount) || 0, ratio: manualEntry.ratio ?? 100 }, ...p]);
+    setExpenses(p => {
+      const exists = p.some(e => e.id === manualEntry.id);
+      const entry = { ...manualEntry, amount: parseInt(manualEntry.amount) || 0, ratio: manualEntry.ratio ?? 100 };
+      if (exists) return p.map(e => e.id === manualEntry.id ? entry : e);
+      return [entry, ...p];
+    });
     setManualEntry(null);
     setExpTab("list");
+  };
+
+  const editExpense = (exp) => {
+    setManualEntry(exp);
+    setExpTab("manual");
   };
 
   // ── レシートスキャン処理 ──
@@ -941,15 +1062,15 @@ export default function App() {
         .join(", ");
       const catIds = categories.filter(c => c.id !== "all").map(c => c.id).join("|");
 
-      const apiKey = window.__ANTHROPIC_KEY__ || "";
-      if (!apiKey) throw new Error("APIキーが設定されていません");
+      const keyToUse = apiKey || window.__ANTHROPIC_KEY__ || "";
+      if (!keyToUse) throw new Error("APIキーが設定されていません。右上の「⚙️設定」から登録してください。");
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
-          "x-api-key": apiKey,
+          "x-api-key": keyToUse,
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
@@ -958,7 +1079,8 @@ export default function App() {
             role: "user",
             content: [
               { type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: base64 } },
-              { type: "text", text: `あなたはフリーランスのアイドル・アーティスト（たきしま）の確定申告を補助するAIです。
+              {
+                type: "text", text: `あなたはフリーランスのアイドル・アーティスト（たきしま）の確定申告を補助するAIです。
 このレシート・領収書を見て、**仕事上の必要経費として認められるか**を日本の税務基準で厳格に3段階判定してください。
 
 対象者の仕事: アイドル活動・ライブ・撮影・グッズ監修・打ち合わせ・配信活動など
@@ -1064,16 +1186,16 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
 
   const cancelScan = () => { setEditEntry(null); setPreviewUrl(null); setError(null); setRejectedEntry(null); };
   const deleteExpense = (id) => setExpenses(p => p.filter(e => e.id !== id));
-  const updateRatio   = (id, ratio) => setExpenses(p => p.map(e => e.id === id ? { ...e, ratio } : e));
+  const updateRatio = (id, ratio) => setExpenses(p => p.map(e => e.id === id ? { ...e, ratio } : e));
 
   // 集計（選択年のみ）
   const yearExpenses = expenses.filter(e => getYear(e.date) === selectedYear);
-  const yearIncomes  = incomes.filter(i => getYear(i.date) === selectedYear);
+  const yearIncomes = incomes.filter(i => getYear(i.date) === selectedYear);
   const grandExpense = yearExpenses.reduce((s, e) => s + effectiveAmount(e), 0);
-  const grandIncome  = yearIncomes.reduce((s, i) => s + i.amount, 0);
-  const grandWith    = yearIncomes.reduce((s, i) => s + (i.withholding || 0), 0);
-  const filtered     = filterCat === "all" ? yearExpenses : yearExpenses.filter(e => e.category === filterCat);
-  const catTotals    = categories.filter(c => c.id !== "all")
+  const grandIncome = yearIncomes.reduce((s, i) => s + i.amount, 0);
+  const grandWith = yearIncomes.reduce((s, i) => s + (i.withholding || 0), 0);
+  const filtered = filterCat === "all" ? yearExpenses : yearExpenses.filter(e => e.category === filterCat);
+  const catTotals = categories.filter(c => c.id !== "all")
     .map(c => ({ ...c, total: yearExpenses.filter(e => e.category === c.id).reduce((s, e) => s + effectiveAmount(e), 0) }))
     .filter(c => c.total > 0);
 
@@ -1086,7 +1208,7 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
 
   const exportExpenseCSV = () => {
     const rows = ["発生日,勘定科目,税区分,金額,備考,取引先",
-      ...yearExpenses.map(e => `${fmtDate(e.date)},${gc(e.category).label},課税仕入10%,${effectiveAmount(e)},${e.memo}（按分${e.ratio??100}%）,${e.store}`)
+      ...yearExpenses.map(e => `${fmtDate(e.date)},${gc(e.category).label},課税仕入10%,${effectiveAmount(e)},${e.memo}（按分${e.ratio ?? 100}%）,${e.store}`)
     ];
     const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `経費データ_${selectedYear}年.csv`; a.click();
@@ -1095,7 +1217,7 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
   // ── メインタブ定義 ──
   const MAIN_TABS = [
     { id: "expense", label: "💳 経費" },
-    { id: "income",  label: "💴 収入" },
+    { id: "income", label: "💴 収入" },
     { id: "summary", label: "📊 申告" },
   ];
 
@@ -1144,6 +1266,10 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
               <p style={{ margin: "1px 0 0", fontSize: 12, color: "#bbb" }}>たきしまさん専用</p>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button onClick={() => setShowSettings(true)} style={{
+                background: "#F0EBE0", border: "none", color: "#7A6A55",
+                padding: "7px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600
+              }}>⚙️ 設定</button>
               <button onClick={() => setShowCatModal(true)} style={{
                 background: "#F0EBE0", border: "none", color: "#7A6A55",
                 padding: "7px 12px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 600
@@ -1390,13 +1516,13 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
                 {/* 経費NG / グレー表示 */}
                 {rejectedEntry && !previewUrl && (() => {
                   const isGray = rejectedEntry.verdict === "gray";
-                  const accent     = isGray ? "#B07A20" : "#C05050";
-                  const bgCard     = isGray ? "#FFFBF0" : "#FFF5F5";
-                  const bgBorder   = isGray ? "#F5D87A" : "#FECACA";
-                  const bgReason   = isGray ? "#FEF3CC" : "#FFEAEA";
-                  const emoji      = isGray ? "⚠️" : "🚫";
-                  const title      = isGray ? "グレーゾーン：登録は非推奨です" : "経費として認められません";
-                  const subtitle   = isGray ? "税務調査で否認されるリスクがあります" : "日本の税務基準でNGと判定されました";
+                  const accent = isGray ? "#B07A20" : "#C05050";
+                  const bgCard = isGray ? "#FFFBF0" : "#FFF5F5";
+                  const bgBorder = isGray ? "#F5D87A" : "#FECACA";
+                  const bgReason = isGray ? "#FEF3CC" : "#FFEAEA";
+                  const emoji = isGray ? "⚠️" : "🚫";
+                  const title = isGray ? "グレーゾーン：登録は非推奨です" : "経費として認められません";
+                  const subtitle = isGray ? "税務調査で否認されるリスクがあります" : "日本の税務基準でNGと判定されました";
                   return (
                     <div style={{ animation: "fadeUp 0.3s ease" }}>
                       <div style={{
@@ -1440,7 +1566,7 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
                           <button onClick={() => {
                             setExpenses(p => [{
                               id: nextId.current++,
-                              date: rejectedEntry.full?.date || new Date().toISOString().slice(0,10),
+                              date: rejectedEntry.full?.date || new Date().toISOString().slice(0, 10),
                               store: rejectedEntry.store,
                               amount: rejectedEntry.amount,
                               memo: rejectedEntry.memo,
@@ -1527,10 +1653,10 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
             <SectionCard style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#5B4A3A", marginBottom: 14 }}>📊 {selectedYear}年 収支サマリー</div>
               {[
-                { label: "売上合計（収入）",    value: grandIncome,                    color: "#2D5A3D", big: true },
-                { label: "経費合計",            value: grandExpense,                   color: "#C07A3A" },
-                { label: "課税対象（概算）",    value: grandIncome - grandExpense,     color: "#5B4A3A", big: true, border: true },
-                { label: "源泉徴収された税額",  value: grandWith,                      color: "#4A7BC4" },
+                { label: "売上合計（収入）", value: grandIncome, color: "#2D5A3D", big: true },
+                { label: "経費合計", value: grandExpense, color: "#C07A3A" },
+                { label: "課税対象（概算）", value: grandIncome - grandExpense, color: "#5B4A3A", big: true, border: true },
+                { label: "源泉徴収された税額", value: grandWith, color: "#4A7BC4" },
               ].map((row, i) => (
                 <div key={i} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -1613,12 +1739,12 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
 
             {/* データリセット */}
             <div style={{ marginTop: 8, textAlign: "center" }}>
-              <button onClick={async () => {
+              <button onClick={() => {
                 if (!window.confirm("すべてのデータを削除してサンプルデータに戻しますか？この操作は取り消せません。")) return;
                 setExpenses(SAMPLE_EXPENSES);
                 setIncomes(SAMPLE_INCOME);
                 setCategories(DEFAULT_CATEGORIES);
-                try { await window.storage.delete("keihi-data"); } catch {}
+                try { localStorage.removeItem("keihi-data"); } catch { }
               }} style={{
                 background: "none", border: "none", color: "#ccc", fontSize: 12, cursor: "pointer", padding: "8px 16px"
               }}>🗑 データをリセットする</button>
@@ -1636,6 +1762,13 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
           onClose={() => setShowCatModal(false)}
           newCat={newCat}
           setNewCat={setNewCat}
+        />
+      )}
+      {showSettings && (
+        <SettingsModal
+          apiKey={apiKey}
+          setApiKey={setApiKey}
+          onClose={() => setShowSettings(false)}
         />
       )}
       <ImageModal url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
