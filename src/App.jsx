@@ -6,12 +6,13 @@ import { createClient } from '@supabase/supabase-js';
 // ─────────────────────────────────────────────────────────
 const DEFAULT_CATEGORIES = [
   { id: "all", label: "すべて", icon: "📊", color: "#6B7280", bg: "#F3F4F6", keywords: "" },
-  { id: "costume", label: "衣装・コスチューム", icon: "👗", color: "#DB6B8A", bg: "#FDF2F5", keywords: "衣装,コスチューム,服,アクセサリー,ウィッグ" },
-  { id: "meeting", label: "打ち合わせ", icon: "☕", color: "#C07A3A", bg: "#FDF6EE", keywords: "カフェ,レストラン,飲食,コーヒー,食事,ランチ,ディナー" },
-  { id: "health", label: "健康管理", icon: "🌿", color: "#4A9B72", bg: "#F0FAF4", keywords: "ジム,フィットネス,スポーツ,健康,プロテイン,サプリ" },
-  { id: "transport", label: "交通費", icon: "🚃", color: "#4A7BC4", bg: "#EFF5FD", keywords: "電車,バス,タクシー,交通,新幹線,飛行機,駐車場" },
-  { id: "equipment", label: "機材・備品", icon: "🎤", color: "#7C5FC4", bg: "#F5F0FD", keywords: "機材,マイク,カメラ,照明,備品,電子機器,ケーブル" },
-  { id: "other", label: "その他", icon: "📌", color: "#8B8080", bg: "#F5F2F2", keywords: "" },
+  { id: "supplies", label: "消耗品費", icon: "🛒", color: "#DB6B8A", bg: "#FDF2F5", keywords: "衣装,服,機材,マイク,カメラ,備品,パソコン,文具" },
+  { id: "meeting", label: "接待交際費", icon: "☕", color: "#C07A3A", bg: "#FDF6EE", keywords: "打ち合わせ,カフェ,レストラン,飲食,食事,差し入れ,手土産" },
+  { id: "transport", label: "旅費交通費", icon: "🚃", color: "#4A7BC4", bg: "#EFF5FD", keywords: "電車,バス,タクシー,新幹線,飛行機,駐車場,宿泊費" },
+  { id: "communication", label: "通信費", icon: "📱", color: "#4A9B72", bg: "#F0FAF4", keywords: "スマホ代,携帯料金,インターネット,Webサービス,切手代" },
+  { id: "rent", label: "地代家賃", icon: "🏠", color: "#7C5FC4", bg: "#F5F0FD", keywords: "スタジオ代,レンタルスペース,家賃" },
+  { id: "fees", label: "支払手数料", icon: "💳", color: "#8B8080", bg: "#F5F2F2", keywords: "振込手数料,システム手数料,仲介手数料" },
+  { id: "other", label: "雑費", icon: "📌", color: "#8B8080", bg: "#F5F2F2", keywords: "その他少額の経費,クリーニング代" },
 ];
 
 const SUPABASE_URL = "https://oultpirylilasscnzwdz.supabase.co";
@@ -28,12 +29,12 @@ const COLOR_PALETTE = [
 ];
 
 const SAMPLE_EXPENSES = [
-  { id: 1, date: "2025-11-03", store: "コスチュームショップ ユニバース", amount: 12800, memo: "ユナイト公式衣装代", category: "costume", imageUrl: null },
+  { id: 1, date: "2025-11-03", store: "コスチュームショップ ユニバース", amount: 12800, memo: "ユナイト公式衣装代", category: "supplies", imageUrl: null },
   { id: 2, date: "2025-11-05", store: "スターバックス 渋谷店", amount: 1640, memo: "おぶやんさんとの打ち合わせ", category: "meeting", imageUrl: null },
-  { id: 3, date: "2025-11-07", store: "エニタイムフィットネス", amount: 7700, memo: "ジム月会費", category: "health", imageUrl: null },
+  { id: 3, date: "2025-11-07", store: "エニタイムフィットネス", amount: 7700, memo: "ジム月会費（事業関連）", category: "other", imageUrl: null },
   { id: 4, date: "2025-11-10", store: "JR東日本", amount: 2340, memo: "ライブ会場への交通費", category: "transport", imageUrl: null },
-  { id: 5, date: "2026-01-15", store: "コスチュームショップ ユニバース", amount: 18000, memo: "新衣装代", category: "costume", imageUrl: null },
-  { id: 6, date: "2026-02-03", store: "エニタイムフィットネス", amount: 7700, memo: "ジム月会費", category: "health", imageUrl: null },
+  { id: 5, date: "2026-01-15", store: "コスチュームショップ ユニバース", amount: 18000, memo: "新衣装代", category: "supplies", imageUrl: null },
+  { id: 6, date: "2026-02-03", store: "Amazon", amount: 5500, memo: "配信マイク用ケーブル", category: "supplies", imageUrl: null },
 ];
 
 const SAMPLE_INCOME = [
@@ -1029,10 +1030,37 @@ export default function App() {
           setIncomes(SAMPLE_INCOME);
         }
 
-        // カテゴリデータの読み込み
+        // カテゴリデータの読み込みと確定申告用への自動マイグレーション
         const { data: catData, error: catErr } = await supabase.from('categories').select('*');
         if (!catErr && catData?.length > 0) {
-          setCategories(catData.map(c => ({ ...c })));
+          const mapOldToNew = {
+            "costume": { label: "消耗品費", icon: "🛒", keywords: "衣装,服,機材,用具" },
+            "meeting": { label: "接待交際費", icon: "☕" },
+            "transport": { label: "旅費交通費", icon: "🚃" },
+            "equipment": { label: "消耗品費", icon: "🛒" },
+            "health": { label: "雑費", icon: "📌" },
+            "other": { label: "雑費", icon: "📌" },
+          };
+
+          const upgradedCats = catData.map(c => {
+            if (mapOldToNew[c.id]) {
+              // 過去のデフォルト名と一致する場合のみ正式な勘定科目にリネーム
+              if (["衣装・コスチューム", "打ち合わせ", "交通費", "機材・備品", "健康管理", "その他"].includes(c.label)) {
+                return { ...c, label: mapOldToNew[c.id].label, icon: mapOldToNew[c.id].icon };
+              }
+            }
+            return c;
+          });
+
+          // もし不足している確定申告用カテゴリがあれば追加
+          const requiredIds = ["supplies", "communication", "rent", "fees"];
+          const missing = DEFAULT_CATEGORIES.filter(dc => requiredIds.includes(dc.id) && !upgradedCats.some(uc => uc.id === dc.id));
+          const finalCats = [...upgradedCats, ...missing];
+
+          setCategories(finalCats);
+          if (JSON.stringify(catData) !== JSON.stringify(finalCats)) {
+            await supabase.from('categories').upsert(finalCats);
+          }
         } else {
           setCategories(DEFAULT_CATEGORIES);
           await supabase.from('categories').upsert(DEFAULT_CATEGORIES);
