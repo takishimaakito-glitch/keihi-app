@@ -218,14 +218,25 @@ function CategoryModal({ categories, onAdd, onDelete, onClose, newCat, setNewCat
 // ─────────────────────────────────────────────────────────
 // 設定モーダル
 // ─────────────────────────────────────────────────────────
-function SettingsModal({ apiKey, setApiKey, onClose }) {
+function SettingsModal({ apiKey, setApiKey, onClose, fixedExpenses, setFixedExpenses, categories }) {
   const [inputKey, setInputKey] = useState(apiKey);
+  const [tempFixed, setTempFixed] = useState(fixedExpenses);
+  const [newFixed, setNewFixed] = useState({ store: "", amount: "", day: 25, category: "other", ratio: 100 });
 
   const handleSave = () => {
     setApiKey(inputKey);
     localStorage.setItem("keihi-api-key", inputKey);
+    setFixedExpenses(tempFixed);
+    localStorage.setItem("keihi-fixed-expenses", JSON.stringify(tempFixed));
     onClose();
   };
+
+  const addFixed = () => {
+    if (!newFixed.store || !newFixed.amount) return;
+    setTempFixed(p => [...p, { id: Date.now(), ...newFixed, amount: parseInt(newFixed.amount) || 0 }]);
+    setNewFixed({ store: "", amount: "", day: 25, category: "other", ratio: 100 });
+  };
+  const removeFixed = (id) => setTempFixed(p => p.filter(f => f.id !== id));
 
   return (
     <div onClick={onClose} style={{
@@ -234,7 +245,7 @@ function SettingsModal({ apiKey, setApiKey, onClose }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: "#fff", borderRadius: 24, padding: "24px",
-        width: "100%", maxWidth: 500, boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
+        width: "100%", maxWidth: 500, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
         animation: "fadeUp 0.3s ease"
       }}>
         <div style={{ fontWeight: 800, fontSize: 18, color: "#1A1714", marginBottom: 16 }}>⚙️ アプリ設定</div>
@@ -259,6 +270,42 @@ function SettingsModal({ apiKey, setApiKey, onClose }) {
           <div style={{ fontSize: 11, color: "#888", marginTop: 8, lineHeight: 1.5 }}>
             ※ レシートや請求書のAI読み取りに使用します。<br />
             ※ APIキーはお使いのブラウザ（ローカル）にのみ保存されます。
+          </div>
+        </div>
+
+        {/* 固定費設定 */}
+        <div style={{ marginBottom: 20, paddingTop: 16, borderTop: "1px solid #E8E2D8" }}>
+          <label style={{ fontSize: 13, color: "#5B4A3A", display: "block", marginBottom: 12, fontWeight: 700 }}>
+            🔁 毎月の自動登録（固定費テンプレート）
+          </label>
+          <div style={{ fontSize: 11, color: "#888", marginBottom: 12, lineHeight: 1.5 }}>
+            家賃やサブスクなど、毎月自動で経費リストに追加したい項目を設定できます。<br />
+            （アプリを開いた月に1回だけ自動追加されます）
+          </div>
+
+          {tempFixed.map(f => (
+            <div key={f.id} style={{ display: "flex", gap: 8, alignItems: "center", background: "#FDFBF8", padding: "8px 12px", borderRadius: 8, marginBottom: 8, border: "1px solid #E8E2D8" }}>
+              <div style={{ flex: 1, fontSize: 13 }}>
+                <strong>{f.store}</strong> ({f.day}日) <br />
+                <span style={{ color: "#888", fontSize: 11 }}>¥{f.amount} / 按分{f.ratio}%</span>
+              </div>
+              <button onClick={() => removeFixed(f.id)} style={{ background: "none", border: "none", color: "#bbb", cursor: "pointer", fontSize: 14 }}>✕</button>
+            </div>
+          ))}
+
+          <div style={{ background: "#F5F0E8", padding: 12, borderRadius: 10, marginTop: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+              <input type="text" placeholder="支払先 (例: 家賃)" value={newFixed.store} onChange={e => setNewFixed(p => ({ ...p, store: e.target.value }))} style={{ padding: "8px", borderRadius: 6, border: "1px solid #E8E2D8", outline: "none", fontSize: 12 }} />
+              <input type="number" placeholder="金額" value={newFixed.amount} onChange={e => setNewFixed(p => ({ ...p, amount: e.target.value }))} style={{ padding: "8px", borderRadius: 6, border: "1px solid #E8E2D8", outline: "none", fontSize: 12 }} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+              <input type="number" placeholder="毎月日" value={newFixed.day} onChange={e => setNewFixed(p => ({ ...p, day: e.target.value }))} style={{ padding: "8px", borderRadius: 6, border: "1px solid #E8E2D8", outline: "none", fontSize: 12 }} />
+              <input type="number" placeholder="按分%" value={newFixed.ratio} onChange={e => setNewFixed(p => ({ ...p, ratio: e.target.value }))} style={{ padding: "8px", borderRadius: 6, border: "1px solid #E8E2D8", outline: "none", fontSize: 12 }} />
+              <select value={newFixed.category} onChange={e => setNewFixed(p => ({ ...p, category: e.target.value }))} style={{ padding: "8px", borderRadius: 6, border: "1px solid #E8E2D8", outline: "none", fontSize: 12, background: "#fff" }}>
+                {categories.filter(c => c.id !== "all").map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </div>
+            <button onClick={addFixed} style={{ width: "100%", padding: "8px", background: "#5B4A3A", color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>リストに追加</button>
           </div>
         </div>
 
@@ -317,6 +364,9 @@ function ExpenseCard({ exp, onDelete, onEdit, onImageClick, onRatioChange, cats 
               <span style={{ fontSize: 11, color: "#C07A3A", background: "#FDF6EE", padding: "1px 7px", borderRadius: 999, fontWeight: 600 }}>
                 按分 {ratio}%
               </span>
+            )}
+            {exp.invoiceNo && (
+              <span style={{ fontSize: 11, color: "#aaa", background: "#F5F5F5", padding: "1px 8px", borderRadius: 6 }}>{exp.invoiceNo}</span>
             )}
           </div>
         </div>
@@ -935,6 +985,7 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState(null); // "saving" | "saved" | "error"
   const [apiKey, setApiKey] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [fixedExpenses, setFixedExpenses] = useState([]);
   const fileRef = useRef();
   const nextId = useRef(200);
   const catId = useRef(100);
@@ -975,6 +1026,40 @@ export default function App() {
         if (expData?.length > 0 || incData?.length > 0) {
           nextId.current = Math.max(200, ...(expData || []).map(e => e.id), ...(incData || []).map(i => i.id)) + 1;
         }
+
+        // --- 固定費の自動適用 ---
+        const savedFixed = JSON.parse(localStorage.getItem("keihi-fixed-expenses") || "[]");
+        setFixedExpenses(savedFixed);
+
+        const today = new Date();
+        const ym = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+        const autoAssigned = JSON.parse(localStorage.getItem("keihi-auto-assigned") || "{}");
+
+        if (!autoAssigned[ym] && savedFixed.length > 0) {
+          let injected = [];
+          savedFixed.forEach(fe => {
+            injected.push({
+              id: nextId.current++,
+              date: `${ym}-${String(fe.day).padStart(2, "0")}`,
+              store: fe.store,
+              amount: Number(fe.amount),
+              category: fe.category,
+              memo: "毎月自動登録（固定費）",
+              ratio: Number(fe.ratio) || 100,
+              imageUrl: null,
+              invoiceNo: null
+            });
+          });
+          if (injected.length > 0) {
+            setExpenses(prev => {
+              // 既に同じ固定費がこの月に登録されていないか念のためチェック（重複防止）
+              return [...injected, ...prev.filter(e => e.memo !== "毎月自動登録（固定費）" || !e.date.startsWith(ym))];
+            });
+          }
+          autoAssigned[ym] = true;
+          localStorage.setItem("keihi-auto-assigned", JSON.stringify(autoAssigned));
+        }
+        // -----------------------
       } catch (e) {
         console.error("Supabase load error:", e);
       } finally {
@@ -995,7 +1080,8 @@ export default function App() {
         if (expenses.length > 0) {
           const { error: expErr } = await supabase.from('expenses').upsert(expenses.map(e => ({
             id: e.id, date: e.date, store: e.store, amount: e.amount,
-            category: e.category, memo: e.memo, ratio: e.ratio || 100, imageUrl: e.imageUrl || null
+            category: e.category, memo: e.memo, ratio: e.ratio || 100, imageUrl: e.imageUrl || null,
+            invoiceNo: e.invoiceNo || null
           })));
           if (expErr) console.error("Expense Save Error:", expErr);
         }
@@ -1058,7 +1144,7 @@ export default function App() {
     setManualEntry({
       id: nextId.current++,
       date: `${selectedYear}-${mm}-${dd}`,
-      store: "", memo: "", amount: "", category: "other", imageUrl: null,
+      store: "", memo: "", amount: "", category: "other", imageUrl: null, invoiceNo: "",
     });
     setExpTab("manual");
   };
@@ -1162,7 +1248,8 @@ export default function App() {
   "store": "店名",
   "amount": 数値,
   "memo": "購入内容の簡潔な説明",
-  "category": "${catIds}"
+  "category": "${catIds}",
+  "invoiceNo": "インボイス登録番号（T+13桁の数字があれば必ず抽出。なければ空文字）"
 }
 
 categoryの判断基準:
@@ -1447,6 +1534,14 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
                   <div style={{ marginBottom: 14 }}>
                     <label style={{ fontSize: 12, color: "#888", display: "block", marginBottom: 4, fontWeight: 600 }}>🏪 店名・支払先</label>
                     <input type="text" placeholder="例：スターバックス 渋谷店" value={manualEntry?.store ?? ""} onChange={e => setManualEntry(p => ({ ...p, store: e.target.value }))}
+                      style={{ width: "100%", border: "1.5px solid #E8E2D8", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "#1A1714", background: "#FDFBF8", outline: "none", boxSizing: "border-box" }}
+                      onFocus={e => e.target.style.borderColor = "#A08F7A"} onBlur={e => e.target.style.borderColor = "#E8E2D8"} />
+                  </div>
+
+                  {/* 登録番号 (インボイス) */}
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 12, color: "#888", display: "block", marginBottom: 4, fontWeight: 600 }}>🔖 登録番号 (インボイス)</label>
+                    <input type="text" placeholder="例：T1234567890123" value={manualEntry?.invoiceNo ?? ""} onChange={e => setManualEntry(p => ({ ...p, invoiceNo: e.target.value }))}
                       style={{ width: "100%", border: "1.5px solid #E8E2D8", borderRadius: 10, padding: "10px 14px", fontSize: 14, color: "#1A1714", background: "#FDFBF8", outline: "none", boxSizing: "border-box" }}
                       onFocus={e => e.target.style.borderColor = "#A08F7A"} onBlur={e => e.target.style.borderColor = "#E8E2D8"} />
                   </div>
@@ -1810,6 +1905,9 @@ verdict=ng/grayの場合もdate/store/amount/memoは必ず埋めてください�
           apiKey={apiKey}
           setApiKey={setApiKey}
           onClose={() => setShowSettings(false)}
+          fixedExpenses={fixedExpenses}
+          setFixedExpenses={setFixedExpenses}
+          categories={categories}
         />
       )}
       <ImageModal url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
