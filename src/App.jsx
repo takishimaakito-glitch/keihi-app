@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
 // ─────────────────────────────────────────────────────────
 // 定数
@@ -12,6 +13,10 @@ const DEFAULT_CATEGORIES = [
   { id: "equipment", label: "機材・備品", icon: "🎤", color: "#7C5FC4", bg: "#F5F0FD", keywords: "機材,マイク,カメラ,照明,備品,電子機器,ケーブル" },
   { id: "other", label: "その他", icon: "📌", color: "#8B8080", bg: "#F5F2F2", keywords: "" },
 ];
+
+const SUPABASE_URL = "https://oultpirylilasscnzwdz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91bHRwaXJ5bGlsYXNzY256d2R6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MzU2MDQsImV4cCI6MjA4NzExMTYwNH0.qgkLnRxNdkWxpDd8WrNYUocqgTd5zl3fSH_JO6SecbQ";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const COLOR_PALETTE = [
   { color: "#E07B5A", bg: "#FDF3EF" },
@@ -937,22 +942,33 @@ export default function App() {
 
   // ── ストレージからの初期ロード ──
   useEffect(() => {
-    const load = () => {
+    const load = async () => {
       try {
         const savedKey = localStorage.getItem("keihi-api-key");
         if (savedKey) setApiKey(savedKey);
 
-        const result = localStorage.getItem("keihi-data");
-        if (result) {
-          const data = JSON.parse(result);
-          if (data.expenses?.length) setExpenses(data.expenses);
-          if (data.incomes?.length) setIncomes(data.incomes);
-          if (data.categories?.length) setCategories(data.categories);
-          if (data.nextId) nextId.current = data.nextId;
-          if (data.catId) catId.current = data.catId;
+        // Supabase匿名ログイン（念のため）
+        await supabase.auth.signInAnonymously();
+
+        // 経費データの読み込み
+        const { data: expData, error: expErr } = await supabase.from('expenses').select('*').order('createdAt', { ascending: false });
+        if (!expErr && expData?.length) setExpenses(expData.map(e => ({ ...e, ratio: Number(e.ratio), amount: Number(e.amount) })));
+
+        // 収入データの読み込み
+        const { data: incData, error: incErr } = await supabase.from('incomes').select('*').order('createdAt', { ascending: false });
+        if (!incErr && incData?.length) setIncomes(incData.map(i => ({ ...i, amount: Number(i.amount), withholding: Number(i.withholding) })));
+
+        // カテゴリデータの読み込み
+        const { data: catData, error: catErr } = await supabase.from('categories').select('*');
+        if (!catErr && catData?.length) {
+          setCategories(catData.map(c => ({ ...c })));
+          nextId.current = Math.max(200, ...expData.map(e => e.id), ...incData.map(i => i.id)) + 1;
+        } else {
+          // カテゴリがない（初回起動）場合はデフォルトを挿入
+          await supabase.from('categories').upsert(DEFAULT_CATEGORIES);
         }
       } catch (e) {
-        // ストレージエラー → サンプルデータのまま使う
+        console.error("Supabase load error:", e);
       } finally {
         setStorageReady(true);
       }
@@ -965,23 +981,38 @@ export default function App() {
     if (!storageReady) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveStatus("saving");
-    saveTimer.current = setTimeout(() => {
+    saveTimer.current = setTimeout(async () => {
       try {
-        const data = {
-          expenses,
-          incomes,
-          categories,
-          nextId: nextId.current,
-          catId: catId.current,
-          savedAt: new Date().toISOString(),
-        };
-        localStorage.setItem("keihi-data", JSON.stringify(data));
+        // expensesを一括upsert
+        if (expenses.length > 0) {
+          await supabase.from('expenses').upsert(expenses.map(e => ({
+            id: e.id, date: e.date, store: e.store, amount: e.amount,
+            category: e.category, memo: e.memo, ratio: e.ratio || 100, imageUrl: e.imageUrl || null
+          })));
+        }
+
+        // incomesを一括upsert
+        if (incomes.length > 0) {
+          await supabase.from('incomes').upsert(incomes.map(i => ({
+            id: i.id, date: i.date, client: i.client, amount: i.amount,
+            withholding: i.withholding || 0, memo: i.memo, invoiceNo: i.invoiceNo || null
+          })));
+        }
+
+        // categoriesを一括upsert
+        if (categories.length > 0) {
+          await supabase.from('categories').upsert(categories.map(c => ({
+            id: c.id, label: c.label, icon: c.icon, color: c.color, bg: c.bg, keywords: c.keywords || ""
+          })));
+        }
+
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus(null), 2000);
       } catch (e) {
+        console.error("Supabase save error:", e);
         setSaveStatus("error");
       }
-    }, 800);
+    }, 1500); // クラウドセーブなので少し長めに1.5秒デバウンス
     return () => clearTimeout(saveTimer.current);
   }, [expenses, incomes, categories, storageReady]);
 
@@ -1000,9 +1031,10 @@ export default function App() {
     setShowCatModal(false);
   };
 
-  const deleteCategory = (id) => {
+  const deleteCategory = async (id) => {
     setCategories(prev => prev.filter(c => c.id !== id));
     setExpenses(prev => prev.map(e => e.category === id ? { ...e, category: "other" } : e));
+    await supabase.from('categories').delete().eq('id', id);
   };
 
   // getCatをcategoriesに束縛したショートカット
